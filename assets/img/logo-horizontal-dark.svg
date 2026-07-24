@@ -1,0 +1,16 @@
+<svg width="230" height="48" viewBox="0 0 230 48" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="markGradHD" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1ABC9C"/>
+      <stop offset="55%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="13" fill="rgba(255,255,255,0.08)"/>
+  <path d="M24 7 L33 19.5 L27.75 19.5 L27.75 31.5 C27.75 33.15 26.4 34.5 24.75 34.5 L23.25 34.5 C21.6 34.5 20.25 33.15 20.25 31.5 L20.25 19.5 L15 19.5 Z" fill="url(#markGradHD)"/>
+  <circle cx="24" cy="18" r="2.4" fill="#0B1F35"/>
+  <path d="M20.25 28.5 L15 34.5 L20.25 33 Z" fill="url(#markGradHD)"/>
+  <path d="M27.75 28.5 L33 34.5 L27.75 33 Z" fill="url(#markGradHD)"/>
+  <text x="60" y="31" font-family="'Space Grotesk','Plus Jakarta Sans',sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Launchify<tspan fill="#1ABC9C">Sites</tspan></text>
+  <text x="212" y="18" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF">™</text>
+</svg>

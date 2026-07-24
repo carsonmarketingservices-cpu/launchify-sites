@@ -1,0 +1,18 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="markGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1ABC9C"/>
+      <stop offset="55%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square container (flat, minimal) -->
+  <rect width="64" height="64" rx="16" fill="#0B1F35"/>
+  <!-- Upward arrow shaft that flares into a rocket nose -->
+  <path d="M32 10 L44 26 L37 26 L37 42 C37 44.2 35.2 46 33 46 L31 46 C28.8 46 27 44.2 27 42 L27 26 L20 26 Z" fill="url(#markGrad)"/>
+  <!-- porthole -->
+  <circle cx="32" cy="24" r="3.2" fill="#0B1F35"/>
+  <!-- small fins -->
+  <path d="M27 38 L20 46 L27 44 Z" fill="url(#markGrad)"/>
+  <path d="M37 38 L44 46 L37 44 Z" fill="url(#markGrad)"/>
+</svg>

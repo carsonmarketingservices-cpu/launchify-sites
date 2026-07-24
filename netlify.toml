@@ -1,0 +1,23 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+
+[[edge_functions]]
+  path = "/*"
+  function = "domain-router"
+
+[[redirects]]
+  from = "/sites/:slug"
+  to = "/.netlify/functions/view-site?slug=:slug"
+  status = 200
+
+# Basic security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

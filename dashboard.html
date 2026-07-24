@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Sites — Launchify Sites™</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --turquoise:#1ABC9C; --turquoise-dark:#149c81; --navy:#0B1F35;
+    --sky:#38BDF8; --indigo:#6366F1; --purple:#8B5CF6;
+    --grad: linear-gradient(120deg, var(--turquoise) 0%, var(--sky) 40%, var(--indigo) 75%, var(--purple) 100%);
+    --bg-soft:#F4F7F9; --ink-soft:#5B6B7F; --line: rgba(11,31,53,0.08);
+    --shadow-sm: 0 1px 3px rgba(11,31,53,0.06); --shadow-md: 0 8px 24px rgba(11,31,53,0.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Inter',sans-serif; color:var(--navy); background:var(--bg-soft); line-height:1.5;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:-0.02em;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  .wrap{max-width:960px; margin:0 auto; padding:0 24px;}
+  .topbar{background:#fff; border-bottom:1px solid var(--line); padding:18px 0;}
+  .topbar .wrap{display:flex; justify-content:space-between; align-items:center;}
+  .topbar a.brand{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px;}
+  .topbar a.brand span{color:var(--turquoise);}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 18px; border-radius:999px; font-weight:600; font-size:14px; transition:transform 0.2s ease;}
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:var(--navy); color:#fff;}
+  .btn-grad{background:var(--grad); color:#fff;}
+  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--navy);}
+  .btn-danger{background:#fff; border:1px solid #fecaca; color:#b91c1c;}
+  .btn-sm{padding:7px 14px; font-size:13px;}
+  .btn:disabled{opacity:0.45; cursor:not-allowed; transform:none;}
+  main{padding:48px 0 100px;}
+  .page-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:12px;}
+  .page-head h1{font-size:28px;}
+  .empty-state{background:#fff; border:1px dashed var(--line); border-radius:16px; padding:60px 24px; text-align:center; color:var(--ink-soft);}
+  .site-list{display:flex; flex-direction:column; gap:16px;}
+  .site-card{background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 24px;}
+  .site-card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px;}
+  .site-desc{font-size:15px; font-weight:600; max-width:480px;}
+  .site-meta{font-size:12.5px; color:var(--ink-soft); margin-top:4px;}
+  .badge{font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; white-space:nowrap;}
+  .badge.live{background:rgba(26,188,156,0.12); color:var(--turquoise-dark);}
+  .badge.draft{background:var(--bg-soft); color:var(--ink-soft);}
+  .site-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .domain-row{display:flex; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); flex-wrap:wrap; align-items:center;}
+  .domain-row input{flex:1; min-width:180px; padding:9px 12px; border-radius:8px; border:1px solid var(--line); font-family:inherit; font-size:13px;}
+  .dns-note{font-size:12px; color:var(--ink-soft); margin-top:8px; width:100%;}
+  .site-status-line{font-size:12.5px; color:var(--ink-soft); margin-top:10px; min-height:0;}
+  .site-status-line:empty{display:none;}
+
+  /* edit modal */
+  .modal-overlay{display:none; position:fixed; inset:0; z-index:100; background:rgba(11,31,53,0.5); align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff; border-radius:20px; padding:28px; width:100%; max-width:640px; max-height:85vh; overflow-y:auto;}
+  .modal h3{font-size:18px; margin-bottom:16px;}
+  .modal label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; margin-top:14px;}
+  .modal input, .modal textarea{width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--line); font-family:inherit; font-size:13.5px;}
+  .modal textarea{font-family:'SF Mono',Consolas,monospace; font-size:12px;}
+  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a href="index.html" class="brand">Launchify<span>Sites</span></a>
+    <a href="index.html" class="btn btn-ghost btn-sm">&larr; Back to homepage</a>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="page-head">
+      <h1>My Sites</h1>
+      <a href="index.html#top" class="btn btn-grad btn-sm">+ Generate a new site</a>
+    </div>
+
+    <div id="loggedOutMessage" style="display:none;" class="empty-state">
+      <p>You need to be logged in to see your saved sites.</p>
+      <p style="margin-top:12px;"><a href="index.html#top" class="btn btn-primary btn-sm">Go log in</a></p>
+    </div>
+
+    <div id="emptyState" style="display:none;" class="empty-state">
+      <p>You haven't saved any sites yet.</p>
+      <p style="margin-top:12px;"><a href="index.html#top" class="btn btn-grad btn-sm">Generate your first one</a></p>
+    </div>
+
+    <div class="site-list" id="siteList"></div>
+  </div>
+</main>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <h3>Edit site</h3>
+    <label for="editDescription">Business description</label>
+    <input type="text" id="editDescription">
+    <label for="editHtml">Raw HTML (advanced — this is the actual page source)</label>
+    <textarea id="editHtml" rows="14"></textarea>
+    <p class="site-status-line" id="editStatus"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="editCancelBtn">Cancel</button>
+      <button class="btn btn-grad" id="editSaveBtn" style="flex:1;">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Same values as index.html — fill these in once, in both places.
+  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const supabase = SUPABASE_URL.startsWith('http')
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+  const siteList = document.getElementById('siteList');
+  const emptyState = document.getElementById('emptyState');
+  const loggedOutMessage = document.getElementById('loggedOutMessage');
+  let session = null;
+  let editingSiteId = null;
+
+  function escapeHtml(str){
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function siteCardHtml(site){
+    const isLive = site.published;
+    const liveUrl = site.custom_domain ? `https://${site.custom_domain}` : (site.slug ? `/sites/${site.slug}` : null);
+    return `
+      <div class="site-card" data-id="${site.id}">
+        <div class="site-card-top">
+          <div>
+            <div class="site-desc">${escapeHtml(site.business_description || 'Untitled site')}</div>
+            <div class="site-meta">Saved ${new Date(site.created_at).toLocaleDateString()}${liveUrl ? ` · <a href="${liveUrl}" target="_blank" rel="noopener">${liveUrl}</a>` : ''}</div>
+          </div>
+          <span class="badge ${isLive ? 'live' : 'draft'}">${isLive ? 'Live' : 'Draft'}</span>
+        </div>
+        <div class="site-actions">
+          <button class="btn btn-ghost btn-sm" data-action="edit">Edit</button>
+          <button class="btn btn-ghost btn-sm" data-action="toggle-publish">${isLive ? 'Unpublish' : 'Publish'}</button>
+          <button class="btn btn-danger btn-sm" data-action="delete">Delete</button>
+        </div>
+        <div class="domain-row">
+          <input type="text" placeholder="yourdomain.com" value="${site.custom_domain || ''}" data-role="domain-input">
+          <button class="btn btn-ghost btn-sm" data-action="set-domain">Set domain</button>
+          ${site.custom_domain ? '<button class="btn btn-ghost btn-sm" data-action="remove-domain">Remove</button>' : ''}
+        </div>
+        <p class="site-status-line" data-role="status"></p>
+      </div>
+    `;
+  }
+
+  async function loadSites(){
+    if(!supabase || !session) return;
+    const { data, error } = await supabase
+      .from('sites')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if(error){
+      siteList.innerHTML = `<div class="empty-state">Couldn't load your sites: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+
+    if(!data.length){
+      emptyState.style.display = 'block';
+      siteList.innerHTML = '';
+      return;
+    }
+    emptyState.style.display = 'none';
+    siteList.innerHTML = data.map(siteCardHtml).join('');
+  }
+
+  function authHeaders(){
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
+  siteList.addEventListener('click', async (e) => {
+    const card = e.target.closest('.site-card');
+    if(!card) return;
+    const id = card.dataset.id;
+    const statusEl = card.querySelector('[data-role="status"]');
+    const action = e.target.dataset.action;
+    if(!action) return;
+
+    if(action === 'edit'){
+      const desc = card.querySelector('.site-desc').textContent;
+      editingSiteId = id;
+      document.getElementById('editDescription').value = desc;
+      document.getElementById('editHtml').value = '(loading current HTML…)';
+      document.getElementById('editOverlay').classList.add('open');
+      const { data } = await supabase.from('sites').select('html_content').eq('id', id).single();
+      document.getElementById('editHtml').value = data ? data.html_content : '';
+      return;
+    }
+
+    if(action === 'toggle-publish'){
+      const currentlyLive = card.querySelector('.badge').textContent.trim() === 'Live';
+      statusEl.textContent = currentlyLive ? 'Unpublishing…' : 'Publishing…';
+      try{
+        if(currentlyLive){
+          const res = await fetch('/.netlify/functions/update-site', {
+            method:'POST', headers:authHeaders(),
+            body: JSON.stringify({ id, published:false }),
+          });
+          if(!res.ok) throw new Error((await res.json()).error);
+        } else {
+          const res = await fetch('/.netlify/functions/publish-site', {
+            method:'POST', headers:authHeaders(),
+            body: JSON.stringify({ id }),
+          });
+          if(!res.ok) throw new Error((await res.json()).error);
+        }
+        await loadSites();
+      } catch(err){
+        statusEl.textContent = 'Failed: ' + err.message;
+      }
+      return;
+    }
+
+    if(action === 'delete'){
+      if(!confirm('Delete this site permanently?')) return;
+      statusEl.textContent = 'Deleting…';
+      try{
+        const res = await fetch('/.netlify/functions/delete-site', {
+          method:'POST', headers:authHeaders(), body: JSON.stringify({ id }),
+        });
+        if(!res.ok) throw new Error((await res.json()).error);
+        await loadSites();
+      } catch(err){
+        statusEl.textContent = 'Failed: ' + err.message;
+      }
+      return;
+    }
+
+    if(action === 'set-domain'){
+      const domain = card.querySelector('[data-role="domain-input"]').value.trim();
+      statusEl.textContent = 'Registering domain…';
+      try{
+        const res = await fetch('/.netlify/functions/custom-domain', {
+          method:'POST', headers:authHeaders(),
+          body: JSON.stringify({ id, domain, action:'set' }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error);
+        statusEl.textContent = data.dnsInstructions || 'Domain set.';
+        await loadSites();
+      } catch(err){
+        statusEl.textContent = 'Failed: ' + err.message;
+      }
+      return;
+    }
+
+    if(action === 'remove-domain'){
+      statusEl.textContent = 'Removing domain…';
+      try{
+        const res = await fetch('/.netlify/functions/custom-domain', {
+          method:'POST', headers:authHeaders(),
+          body: JSON.stringify({ id, action:'remove' }),
+        });
+        if(!res.ok) throw new Error((await res.json()).error);
+        await loadSites();
+      } catch(err){
+        statusEl.textContent = 'Failed: ' + err.message;
+      }
+      return;
+    }
+  });
+
+  document.getElementById('editCancelBtn').addEventListener('click', () => {
+    document.getElementById('editOverlay').classList.remove('open');
+  });
+
+  document.getElementById('editSaveBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('editSaveBtn');
+    const status = document.getElementById('editStatus');
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    try{
+      const res = await fetch('/.netlify/functions/save-site', {
+        method:'POST', headers:authHeaders(),
+        body: JSON.stringify({
+          id: editingSiteId,
+          description: document.getElementById('editDescription').value,
+          html: document.getElementById('editHtml').value,
+        }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error);
+      document.getElementById('editOverlay').classList.remove('open');
+      await loadSites();
+    } catch(err){
+      status.textContent = 'Failed: ' + err.message;
+    } finally{
+      btn.disabled = false;
+    }
+  });
+
+  if(supabase){
+    supabase.auth.getSession().then(({ data }) => {
+      session = data.session;
+      if(!session){ loggedOutMessage.style.display = 'block'; return; }
+      loadSites();
+    });
+    supabase.auth.onAuthStateChange((_e, s) => {
+      session = s;
+      if(!session){ loggedOutMessage.style.display = 'block'; siteList.innerHTML=''; return; }
+      loggedOutMessage.style.display = 'none';
+      loadSites();
+    });
+  } else {
+    loggedOutMessage.style.display = 'block';
+    loggedOutMessage.querySelector('p').textContent = 'Supabase is not configured yet in this page.';
+  }
+</script>
+</body>
+</html>
