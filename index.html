@@ -1081,6 +1081,18 @@
   }, {threshold:0.15});
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
+  // Safety net: if the page loads scrolled to a mid-page anchor (e.g.
+  // someone visits yoursite.com/#pricing directly), the browser can jump
+  // there before the observer has run for even one frame, occasionally
+  // leaving those sections stuck at opacity:0. Force-reveal anything
+  // still hidden shortly after load so content is never permanently
+  // invisible no matter how someone arrives at the page.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.reveal:not(.in)').forEach(el => el.classList.add('in'));
+    }, 800);
+  });
+
   // ===== Supabase client =====
   // These two values are meant to be public — same as any client-side
   // Supabase app. Fill in your real Launchify project's URL + anon key.
