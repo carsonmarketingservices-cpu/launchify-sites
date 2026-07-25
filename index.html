@@ -124,8 +124,9 @@
   }
   .card:hover{transform:translateY(-4px); box-shadow:var(--shadow-md);}
 
-  .reveal{opacity:0; transform:translateY(24px); transition:opacity 0.7s ease, transform 0.7s ease;}
-  .reveal.in{opacity:1; transform:translateY(0);}
+  .reveal{opacity:1;}
+  .reveal.js-anim{opacity:0; transform:translateY(24px); transition:opacity 0.7s ease, transform 0.7s ease;}
+  .reveal.js-anim.in{opacity:1; transform:translateY(0);}
 
   /* ===== HEADER ===== */
   header{
@@ -1075,23 +1076,27 @@
   mobilePanel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
     navToggle.classList.remove('open'); mobilePanel.classList.remove('open');
   }));
-  // reveal on scroll
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, {threshold:0.15});
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-  // Safety net: if the page loads scrolled to a mid-page anchor (e.g.
-  // someone visits yoursite.com/#pricing directly), the browser can jump
-  // there before the observer has run for even one frame, occasionally
-  // leaving those sections stuck at opacity:0. Force-reveal anything
-  // still hidden shortly after load so content is never permanently
-  // invisible no matter how someone arrives at the page.
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      document.querySelectorAll('.reveal:not(.in)').forEach(el => el.classList.add('in'));
-    }, 800);
-  });
+  // reveal on scroll — content is visible by default via CSS (.reveal{opacity:1}).
+  // This only ADDS a fade-in animation on top for browsers that support
+  // IntersectionObserver; if this block fails for any reason, the page
+  // simply has no fade-in effect instead of hidden content.
+  try {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, {threshold:0.15});
+    document.querySelectorAll('.reveal').forEach(el => {
+      el.classList.add('js-anim');
+      io.observe(el);
+    });
+    // Still keep a safety net in case an element never intersects for some reason.
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.reveal:not(.in)').forEach(el => el.classList.add('in'));
+      }, 1200);
+    });
+  } catch (e) {
+    console.warn('Reveal animation setup failed, content remains visible without animation:', e);
+  }
 
   // ===== Supabase client =====
   // These two values are meant to be public — same as any client-side
