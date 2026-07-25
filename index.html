@@ -89,9 +89,11 @@
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
     padding:15px 28px; border-radius:999px; font-weight:600; font-size:15px;
-    transition:transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    letter-spacing:-0.01em;
+    transition:transform 0.2s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease, background 0.25s ease;
     white-space:nowrap;
   }
+  .btn:active{transform:translateY(0) scale(0.97);}
   .btn-primary{
     background:var(--navy); color:#fff;
     box-shadow:var(--shadow-md);
@@ -99,9 +101,9 @@
   .btn-primary:hover{transform:translateY(-2px); box-shadow:var(--shadow-lg);}
   .btn-grad{
     background:var(--grad); color:#fff;
-    box-shadow:0 12px 28px rgba(56,189,248,0.28);
+    box-shadow:0 12px 28px rgba(56,189,248,0.28), inset 0 1px 0 rgba(255,255,255,0.35);
   }
-  .btn-grad:hover{transform:translateY(-2px); box-shadow:0 16px 36px rgba(99,102,241,0.32);}
+  .btn-grad:hover{transform:translateY(-2px); box-shadow:0 16px 36px rgba(99,102,241,0.32), inset 0 1px 0 rgba(255,255,255,0.4);}
   .btn-ghost{
     background:#fff; color:var(--navy); border:1px solid var(--line);
   }
@@ -200,10 +202,15 @@
       var(--bg);
     overflow:hidden;
   }
+  .hero::before{
+    content:''; position:absolute; inset:0; pointer-events:none; opacity:0.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
   .hero-inner{
     display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center;
+    position:relative; z-index:1;
   }
-  .hero-copy h1{font-size:clamp(38px,5vw,60px);}
+  .hero-copy h1{font-size:clamp(40px,5.2vw,64px); line-height:1.04;}
   .hero-sub{font-size:19px; color:var(--ink-soft); margin:22px 0 34px; max-width:460px;}
   .hero-ctas{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:44px;}
   .hero-proof{display:flex; align-items:center; gap:14px;}
@@ -273,7 +280,7 @@
   }
   @keyframes shimmer{0%{background-position:100% 0;} 100%{background-position:0 0;}}
 
-  .blob{position:absolute; border-radius:50%; filter:blur(50px); opacity:0.5; z-index:1;}
+  .blob{position:absolute; border-radius:50%; filter:blur(50px); opacity:0.5; z-index:1; transition:transform 0.4s cubic-bezier(.2,.8,.2,1);}
   .blob-1{width:260px; height:260px; background:var(--turquoise); top:-60px; right:-60px;}
   .blob-2{width:220px; height:220px; background:var(--indigo); bottom:-70px; left:-40px;}
 
@@ -375,7 +382,30 @@
   /* ===== PORTFOLIO ===== */
   .portfolio-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:64px;}
   .portfolio-card{overflow:hidden; padding:0;}
-  .portfolio-thumb{height:150px;}
+  .portfolio-thumb{
+    height:180px; padding:14px 16px 0; position:relative; overflow:hidden;
+    background:linear-gradient(165deg, var(--pt-bg1), var(--pt-bg2));
+  }
+  .portfolio-thumb[data-accent="bakery"]{--pt-bg1:#fff7ed; --pt-bg2:#ffedd5; --pt-accent:#ea8a3c; --pt-ink:#7c4a12;}
+  .portfolio-thumb[data-accent="church"]{--pt-bg1:#eef2ff; --pt-bg2:#e0e7ff; --pt-accent:#6366F1; --pt-ink:#312e81;}
+  .portfolio-thumb[data-accent="fitness"]{--pt-bg1:#0B1F35; --pt-bg2:#13294a; --pt-accent:#1ABC9C; --pt-ink:#e2f6f0;}
+  .portfolio-thumb[data-accent="realty"]{--pt-bg1:#f0fdfa; --pt-bg2:#ccfbf1; --pt-accent:#0d9488; --pt-ink:#134e4a;}
+  .pt-chrome{display:flex; gap:4px; margin-bottom:10px;}
+  .pt-chrome span{width:6px; height:6px; border-radius:50%; background:var(--pt-ink); opacity:0.25;}
+  .pt-nav{display:flex; align-items:center; gap:10px; padding-bottom:8px; border-bottom:1px solid color-mix(in srgb, var(--pt-ink) 15%, transparent);}
+  .pt-logo{width:12px; height:12px; border-radius:3px; background:var(--pt-accent);}
+  .pt-link{width:22px; height:4px; border-radius:2px; background:var(--pt-ink); opacity:0.35;}
+  .pt-hero{display:flex; flex-direction:column; gap:6px; padding:14px 0 10px;}
+  .pt-hero.centered{align-items:center; text-align:center;}
+  .pt-line{display:block; height:8px; border-radius:4px; background:var(--pt-ink); opacity:0.55;}
+  .pt-line.long{width:75%; height:11px;}
+  .pt-line.short{width:45%; opacity:0.3;}
+  .pt-hero.centered .pt-line.long{width:60%;}
+  .pt-hero.centered .pt-line.short{width:38%;}
+  .pt-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .pt-grid.two{grid-template-columns:repeat(2,1fr);}
+  .pt-grid span{height:28px; border-radius:6px; background:var(--pt-accent); opacity:0.18;}
+  .pt-grid span:nth-child(2){opacity:0.28;}
   .portfolio-info{padding:16px 18px;}
   .portfolio-info h4{font-size:15px; margin-bottom:4px;}
   .portfolio-info p{font-size:12.5px; color:var(--ink-soft);}
@@ -587,8 +617,8 @@
           <p class="builder-save-status" id="builderSaveStatus"></p>
         </div>
       </div>
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
+      <div class="blob blob-1" id="heroBlob1"></div>
+      <div class="blob blob-2" id="heroBlob2"></div>
     </div>
   </div>
 </section>
@@ -862,28 +892,48 @@
     </div>
     <div class="portfolio-grid">
       <div class="portfolio-card card reveal">
-        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#1ABC9C,#38BDF8);"></div>
+        <div class="portfolio-thumb" data-accent="bakery">
+          <div class="pt-chrome"><span></span><span></span><span></span></div>
+          <div class="pt-nav"><span class="pt-logo"></span><span class="pt-link"></span><span class="pt-link"></span><span class="pt-link"></span></div>
+          <div class="pt-hero"><span class="pt-line long"></span><span class="pt-line short"></span></div>
+          <div class="pt-grid"><span></span><span></span><span></span></div>
+        </div>
         <div class="portfolio-info">
           <h4>Bloom &amp; Batch Bakery</h4>
           <p>Local bakery · Business plan</p>
         </div>
       </div>
       <div class="portfolio-card card reveal">
-        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#38BDF8,#6366F1);"></div>
+        <div class="portfolio-thumb" data-accent="church">
+          <div class="pt-chrome"><span></span><span></span><span></span></div>
+          <div class="pt-nav"><span class="pt-logo"></span><span class="pt-link"></span><span class="pt-link"></span><span class="pt-link"></span></div>
+          <div class="pt-hero centered"><span class="pt-line long"></span><span class="pt-line short"></span></div>
+          <div class="pt-grid"><span></span><span></span><span></span></div>
+        </div>
         <div class="portfolio-info">
           <h4>Riverside Church</h4>
           <p>Nonprofit · Professional plan</p>
         </div>
       </div>
       <div class="portfolio-card card reveal">
-        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#6366F1,#8B5CF6);"></div>
+        <div class="portfolio-thumb" data-accent="fitness">
+          <div class="pt-chrome"><span></span><span></span><span></span></div>
+          <div class="pt-nav"><span class="pt-logo"></span><span class="pt-link"></span><span class="pt-link"></span><span class="pt-link"></span></div>
+          <div class="pt-hero"><span class="pt-line long"></span><span class="pt-line short"></span></div>
+          <div class="pt-grid two"><span></span><span></span></div>
+        </div>
         <div class="portfolio-info">
           <h4>Kinetic Fitness Studio</h4>
           <p>Coaching · Professional plan</p>
         </div>
       </div>
       <div class="portfolio-card card reveal">
-        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#8B5CF6,#1ABC9C);"></div>
+        <div class="portfolio-thumb" data-accent="realty">
+          <div class="pt-chrome"><span></span><span></span><span></span></div>
+          <div class="pt-nav"><span class="pt-logo"></span><span class="pt-link"></span><span class="pt-link"></span><span class="pt-link"></span></div>
+          <div class="pt-hero"><span class="pt-line long"></span><span class="pt-line short"></span></div>
+          <div class="pt-grid"><span></span><span></span><span></span></div>
+        </div>
         <div class="portfolio-info">
           <h4>MillHouse Realty</h4>
           <p>Real estate · Business plan</p>
@@ -1096,6 +1146,28 @@
     });
   } catch (e) {
     console.warn('Reveal animation setup failed, content remains visible without animation:', e);
+  }
+
+  // One deliberate motion moment: the hero background blobs drift very
+  // slightly toward the cursor. Kept subtle and confined to the hero only.
+  // Wrapped in its own try/catch — same principle as the reveal fix above:
+  // no single feature should be able to take down everything after it.
+  try {
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const heroBlob1 = document.getElementById('heroBlob1');
+    const heroBlob2 = document.getElementById('heroBlob2');
+    const heroEl = document.querySelector('.hero');
+    if(!prefersReducedMotion && heroBlob1 && heroBlob2 && heroEl){
+      heroEl.addEventListener('mousemove', (e) => {
+        const rect = heroEl.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        heroBlob1.style.transform = `translate(${x * 18}px, ${y * 18}px)`;
+        heroBlob2.style.transform = `translate(${x * -14}px, ${y * -14}px)`;
+      });
+    }
+  } catch (e) {
+    console.warn('Hero parallax setup failed, hero remains static:', e);
   }
 
   // ===== Supabase client =====
