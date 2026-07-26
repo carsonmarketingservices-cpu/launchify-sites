@@ -47,7 +47,7 @@
   }
 
   *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
+  html{scroll-behavior:smooth; scroll-padding-top:170px;}
   body{
     font-family:'Inter', sans-serif;
     color:var(--ink);
@@ -81,7 +81,8 @@
     padding:6px 14px; border-radius:999px;
     margin-bottom:18px;
   }
-  .section{padding:112px 0;}
+  .section{padding:112px 0; scroll-margin-top:170px;}
+  #top{scroll-margin-top:0;}
   .section-soft{background:var(--bg-soft);}
   .section-head{max-width:640px; margin-bottom:56px;}
   .section-head.center{margin-left:auto; margin-right:auto; text-align:center;}
@@ -464,12 +465,13 @@
     display:inline-flex; background:#fff; border-radius:12px; padding:10px 14px;
   }
   .footer-logo{height:84px; width:auto; display:block;}
-  .footer-social{display:flex; gap:12px;}
-  .footer-social a{
-    width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.06); transition:background 0.2s;
+  .share-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:999px; font-size:13px; font-weight:600;
+    color:#fff; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14);
+    transition:background 0.2s;
   }
-  .footer-social a:hover{background:rgba(255,255,255,0.14);}
+  .share-btn:hover{background:rgba(255,255,255,0.16);}
   .footer-col h5{color:#fff; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:18px;}
   .footer-col{display:flex; flex-direction:column; gap:12px;}
   .footer-col a{color:rgba(255,255,255,0.55); font-size:14.5px; transition:color 0.2s;}
@@ -1065,11 +1067,10 @@
         </picture>
       </div>
       <p>Launch your website faster than ever.</p>
-      <div class="footer-social">
-        <a href="#" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg></a>
-        <a href="#" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 9h3V5h-3c-2.2 0-4 1.8-4 4v2H7v4h3v6h4v-6h3l1-4h-4V9c0-.6.4-1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></a>
-        <a href="#" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9" r="1" fill="currentColor"/><path d="M8 12v6M12 12v6M12 14.5c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5V18" stroke="currentColor" stroke-width="1.6"/></svg></a>
-      </div>
+      <button class="share-btn" id="sharePageBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 10.6 15.4 6.4M8.6 13.4l6.8 4.2" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span id="shareBtnLabel">Share this page</span>
+      </button>
     </div>
     <div class="footer-col">
       <h5>Company</h5>
@@ -1561,6 +1562,35 @@
     if(legalOverlay) legalOverlay.addEventListener('click', (e) => { if(e.target === legalOverlay) closeLegalModal(); });
   } catch(e){
     console.warn('Legal modal setup failed:', e);
+  }
+  // ===== Share this page =====
+  try {
+    const sharePageBtn = document.getElementById('sharePageBtn');
+    const shareBtnLabel = document.getElementById('shareBtnLabel');
+    if(sharePageBtn){
+      sharePageBtn.addEventListener('click', async () => {
+        const shareData = {
+          title: 'Launchify Sites — Launch Your Website Faster Than Ever',
+          text: 'Professional websites built with AI and refined by experts.',
+          url: window.location.href,
+        };
+        try{
+          if(navigator.share){
+            await navigator.share(shareData);
+          } else if(navigator.clipboard){
+            await navigator.clipboard.writeText(shareData.url);
+            const original = shareBtnLabel.textContent;
+            shareBtnLabel.textContent = 'Link copied!';
+            setTimeout(() => { shareBtnLabel.textContent = original; }, 2000);
+          }
+        } catch(err){
+          // AbortError fires if the user just closes the native share sheet — not a real error.
+          if(err.name !== 'AbortError') console.warn('Share failed:', err);
+        }
+      });
+    }
+  } catch(e){
+    console.warn('Share button setup failed:', e);
   }
 </script>
 </body>
