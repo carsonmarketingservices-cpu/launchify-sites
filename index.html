@@ -474,6 +474,34 @@
   .footer-col{display:flex; flex-direction:column; gap:12px;}
   .footer-col a{color:rgba(255,255,255,0.55); font-size:14.5px; transition:color 0.2s;}
   .footer-col a:hover{color:#fff;}
+  .footer-link-btn{
+    color:rgba(255,255,255,0.55); font-size:14.5px; transition:color 0.2s;
+    text-align:left; background:none; border:none; font-family:inherit; cursor:pointer; padding:0;
+  }
+  .footer-link-btn:hover{color:#fff;}
+
+  /* ===== LEGAL MODAL ===== */
+  .legal-overlay{
+    display:none; position:fixed; inset:0; z-index:200;
+    background:rgba(11,31,53,0.5); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .legal-overlay.open{display:flex;}
+  .legal-modal{
+    width:100%; max-width:620px; max-height:80vh; padding:40px 40px 32px;
+    position:relative; overflow-y:auto;
+  }
+  .legal-close{position:absolute; top:16px; right:18px; font-size:24px; color:var(--ink-soft); line-height:1;}
+  .legal-body h3{font-size:22px; margin-bottom:6px;}
+  .legal-body .legal-updated{font-size:12.5px; color:var(--ink-soft); margin-bottom:22px;}
+  .legal-body h4{font-size:15px; margin:22px 0 8px;}
+  .legal-body p{font-size:14.5px; color:var(--ink-soft); margin-bottom:10px; line-height:1.65;}
+  .legal-body ul{margin:8px 0 14px 20px; list-style:disc;}
+  .legal-body li{font-size:14.5px; color:var(--ink-soft); margin-bottom:6px; line-height:1.6;}
+  .legal-disclaimer{
+    margin-top:24px; padding:14px 16px; background:var(--bg-soft); border-radius:10px;
+    font-size:13px; color:var(--ink-soft);
+  }
   .footer-bottom{display:flex; justify-content:space-between; padding:24px 0; font-size:13px; color:rgba(255,255,255,0.4); flex-wrap:wrap; gap:10px;}
   @media (max-width:860px){.footer-grid{grid-template-columns:1fr 1fr;}}
   @media (max-width:520px){.footer-grid{grid-template-columns:1fr;}}
@@ -1054,12 +1082,12 @@
       <h5>Support</h5>
       <a href="#faq">Help Center</a>
       <a href="mailto:hello@launchifysites.com">Contact</a>
-      <a href="#">Refund Policy</a>
+      <button class="footer-link-btn" data-modal="refund">Refund Policy</button>
     </div>
     <div class="footer-col">
       <h5>Legal</h5>
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms of Service</a>
+      <button class="footer-link-btn" data-modal="privacy">Privacy Policy</button>
+      <button class="footer-link-btn" data-modal="terms">Terms of Service</button>
     </div>
   </div>
   <div class="wrap footer-bottom">
@@ -1067,6 +1095,16 @@
     <p>hello@launchifysites.com</p>
   </div>
 </footer>
+
+<!-- ========== LEGAL MODALS ========== -->
+<div class="legal-overlay" id="legalOverlay">
+  <div class="legal-modal card">
+    <button class="legal-close" id="legalCloseBtn" aria-label="Close">&times;</button>
+    <div class="legal-body" id="legalBody">
+      <!-- content injected by JS based on which link was clicked -->
+    </div>
+  </div>
+</div>
 
 <script>
   // header scroll state
@@ -1133,17 +1171,25 @@
   // Supabase app. Fill in your real Launchify project's URL + anon key.
   const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // e.g. https://xxxxx.supabase.co
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-  const supabase = (SUPABASE_URL.startsWith('http'))
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
-
-  if(!supabase){
-    console.warn('Supabase is not configured yet — fill in SUPABASE_URL and SUPABASE_ANON_KEY in index.html. Auth, save, and publish will not work until then.');
+  let supabase = null;
+  try {
+    supabase = SUPABASE_URL.startsWith('http')
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+    if(!supabase){
+      console.warn('Supabase is not configured yet — fill in SUPABASE_URL and SUPABASE_ANON_KEY in index.html. Auth, save, and publish will not work until then.');
+    }
+  } catch(e){
+    console.warn('Supabase client failed to initialize:', e);
   }
-
   let currentSession = null;
 
-  // ===== Auth modal =====
+  // All DOM lookups below are safe even if an element is missing —
+  // getElementById/querySelector never throw, they just return null.
+  // Only the code that USES these (attaching listeners, calling methods
+  // on them) can throw, which is why every section below wraps its own
+  // attachment logic separately. A failure in one feature can no longer
+  // prevent any other feature — including the FAQ accordion — from working.
   const authOverlay = document.getElementById('authOverlay');
   const authForm = document.getElementById('authForm');
   const authEmail = document.getElementById('authEmail');
@@ -1158,6 +1204,18 @@
   const googleAuthBtn = document.getElementById('googleAuthBtn');
   let authMode = 'login';
 
+  const generateBtn = document.getElementById('generateBtn');
+  const builderFrame = document.getElementById('builderFrame');
+  const builderStatus = document.getElementById('builderStatus');
+  const bizPrompt = document.getElementById('bizPrompt');
+  const previewFrame = document.getElementById('previewFrame');
+  const saveSiteBtn = document.getElementById('saveSiteBtn');
+  const publishSiteBtn = document.getElementById('publishSiteBtn');
+  const builderSaveStatus = document.getElementById('builderSaveStatus');
+  let lastGeneratedHtml = null;
+  let lastGeneratedDescription = null;
+  let lastSavedSiteId = null;
+
   function openAuthModal(mode){
     authMode = mode || 'login';
     authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === authMode));
@@ -1167,267 +1225,342 @@
   }
   function closeAuthModal(){ authOverlay.classList.remove('open'); }
 
-  navLoginBtn.addEventListener('click', () => openAuthModal('login'));
-  document.getElementById('authCloseBtn').addEventListener('click', closeAuthModal);
-  authOverlay.addEventListener('click', (e) => { if(e.target === authOverlay) closeAuthModal(); });
-  authTabs.forEach(tab => tab.addEventListener('click', () => openAuthModal(tab.dataset.tab)));
-
-  authForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
-    authError.textContent = '';
-    authSubmitBtn.disabled = true;
-    const email = authEmail.value.trim();
-    const password = authPassword.value;
-    try{
-      const { error } = authMode === 'signup'
-        ? await supabase.auth.signUp({ email, password })
-        : await supabase.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-      closeAuthModal();
-      authForm.reset();
-    } catch(err){
-      authError.textContent = err.message || 'Something went wrong';
-    } finally{
-      authSubmitBtn.disabled = false;
-    }
-  });
-
-  googleAuthBtn.addEventListener('click', async () => {
-    if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
-  });
-
-  navLogoutBtn.addEventListener('click', async () => {
-    if(!supabase) return;
-    await supabase.auth.signOut();
-  });
-
   function updateAuthUI(session){
     currentSession = session;
     const loggedIn = !!session;
-    navLoginBtn.style.display = loggedIn ? 'none' : 'inline-flex';
-    navUserState.style.display = loggedIn ? 'flex' : 'none';
-    if(loggedIn) navUserEmail.textContent = session.user.email;
-    saveSiteBtn.disabled = !loggedIn || !lastGeneratedHtml;
-    publishSiteBtn.disabled = true; // only enabled after a successful save
+    if(navLoginBtn) navLoginBtn.style.display = loggedIn ? 'none' : 'inline-flex';
+    if(navUserState) navUserState.style.display = loggedIn ? 'flex' : 'none';
+    if(loggedIn && navUserEmail) navUserEmail.textContent = session.user.email;
+    if(saveSiteBtn) saveSiteBtn.disabled = !loggedIn || !lastGeneratedHtml;
+    if(publishSiteBtn) publishSiteBtn.disabled = true; // only enabled after a successful save
   }
 
-  if(supabase){
-    supabase.auth.getSession().then(({ data }) => updateAuthUI(data.session));
-    supabase.auth.onAuthStateChange((_event, session) => updateAuthUI(session));
-  }
+  // ===== Auth modal setup =====
+  try {
+    if(navLoginBtn) navLoginBtn.addEventListener('click', () => openAuthModal('login'));
+    const authCloseBtn = document.getElementById('authCloseBtn');
+    if(authCloseBtn) authCloseBtn.addEventListener('click', closeAuthModal);
+    if(authOverlay) authOverlay.addEventListener('click', (e) => { if(e.target === authOverlay) closeAuthModal(); });
+    authTabs.forEach(tab => tab.addEventListener('click', () => openAuthModal(tab.dataset.tab)));
 
-  // ===== AI Builder demo — calls the real Netlify function, renders real HTML =====
-  const generateBtn = document.getElementById('generateBtn');
-  const builderFrame = document.getElementById('builderFrame');
-  const builderStatus = document.getElementById('builderStatus');
-  const bizPrompt = document.getElementById('bizPrompt');
-  const previewFrame = document.getElementById('previewFrame');
-  const saveSiteBtn = document.getElementById('saveSiteBtn');
-  const publishSiteBtn = document.getElementById('publishSiteBtn');
-  const builderSaveStatus = document.getElementById('builderSaveStatus');
-
-  let lastGeneratedHtml = null;
-  let lastGeneratedDescription = null;
-  let lastSavedSiteId = null;
-
-  function setStatus(text, tone){
-    builderStatus.textContent = text;
-    if(tone === 'error'){
-      builderStatus.style.background = '#b91c1c';
-    } else {
-      builderStatus.style.background = '';
-    }
-  }
-
-  async function runBuilderDemo(){
-    const description = bizPrompt.value.trim();
-    if(!description){
-      setStatus('Type a description first', 'error');
-      return;
-    }
-    generateBtn.disabled = true;
-    builderFrame.classList.add('is-loading');
-    setStatus('Generating…');
-    builderSaveStatus.textContent = '';
-    lastSavedSiteId = null;
-    publishSiteBtn.disabled = true;
-
-    try{
-      const res = await fetch('/.netlify/functions/generate-website', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ description }),
-      });
-      const data = await res.json();
-      if(!res.ok){
-        throw new Error(data.error || 'Something went wrong');
-      }
-      // Render into the sandboxed iframe via srcdoc — the iframe has an
-      // empty sandbox attribute, so scripts and same-origin access are
-      // blocked even though this HTML came from an AI response shaped by
-      // untrusted visitor input.
-      previewFrame.srcdoc = data.html;
-      builderFrame.classList.add('has-content');
-      setStatus(`Ready (${data.imagesGenerated ?? 0}/${data.imagesRequested ?? 3} images)`);
-      lastGeneratedHtml = data.html;
-      lastGeneratedDescription = description;
-      saveSiteBtn.disabled = !currentSession;
-    } catch(err){
-      setStatus('Couldn\u2019t generate — try again', 'error');
-      console.error('Builder demo error:', err);
-    } finally{
-      generateBtn.disabled = false;
-      builderFrame.classList.remove('is-loading');
-    }
-  }
-
-  if(generateBtn){
-    generateBtn.addEventListener('click', runBuilderDemo);
-    bizPrompt.addEventListener('keydown', (e) => { if(e.key === 'Enter') runBuilderDemo(); });
-  }
-
-  // ===== Save =====
-  saveSiteBtn.addEventListener('click', async () => {
-    if(!supabase || !currentSession){ openAuthModal('login'); return; }
-    if(!lastGeneratedHtml) return;
-    saveSiteBtn.disabled = true;
-    builderSaveStatus.textContent = 'Saving…';
-    try{
-      const res = await fetch('/.netlify/functions/save-site', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentSession.access_token}`,
-        },
-        body: JSON.stringify({
-          id: lastSavedSiteId || undefined,
-          description: lastGeneratedDescription,
-          html: lastGeneratedHtml,
-        }),
-      });
-      const data = await res.json();
-      if(!res.ok) throw new Error(data.error || 'Save failed');
-      lastSavedSiteId = data.id;
-      builderSaveStatus.textContent = 'Saved to your account.';
-      publishSiteBtn.disabled = false;
-    } catch(err){
-      builderSaveStatus.textContent = 'Couldn\u2019t save — try again.';
-      console.error('Save error:', err);
-    } finally{
-      saveSiteBtn.disabled = false;
-    }
-  });
-
-  // ===== Publish =====
-  publishSiteBtn.addEventListener('click', async () => {
-    if(!supabase || !currentSession || !lastSavedSiteId) return;
-    publishSiteBtn.disabled = true;
-    builderSaveStatus.textContent = 'Publishing…';
-    try{
-      const res = await fetch('/.netlify/functions/publish-site', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentSession.access_token}`,
-        },
-        body: JSON.stringify({ id: lastSavedSiteId }),
-      });
-      const data = await res.json();
-      if(!res.ok) throw new Error(data.error || 'Publish failed');
-      builderSaveStatus.innerHTML = `Published: <a href="${data.url}" target="_blank" rel="noopener">${data.url}</a>`;
-    } catch(err){
-      builderSaveStatus.textContent = 'Couldn\u2019t publish — try again.';
-      console.error('Publish error:', err);
-      publishSiteBtn.disabled = false;
-    }
-  });
-
-  // ===== FAQ accordion =====
-  document.querySelectorAll('.faq-item').forEach(item => {
-    const q = item.querySelector('.faq-q');
-    const a = item.querySelector('.faq-a');
-    q.addEventListener('click', () => {
-      const isOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item.open').forEach(other => {
-        if(other !== item){
-          other.classList.remove('open');
-          other.querySelector('.faq-a').style.maxHeight = null;
-        }
-      });
-      item.classList.toggle('open');
-      a.style.maxHeight = isOpen ? null : a.scrollHeight + 'px';
-    });
-  });
-
-  // ===== Animated stat counters =====
-  const statNodes = document.querySelectorAll('.stat-num');
-  const statIO = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(!entry.isIntersecting) return;
-      const el = entry.target;
-      const target = parseFloat(el.dataset.count);
-      const decimals = el.dataset.decimal ? 1 : 0;
-      const suffix = el.dataset.suffix || '';
-      const decimalDigit = el.dataset.decimal || '';
-      const duration = 1400;
-      const start = performance.now();
-      function tick(now){
-        const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        let value;
-        if(decimals){
-          value = (target + parseFloat('0.' + decimalDigit) * progress).toFixed(1);
-        } else {
-          value = Math.floor(eased * target);
-        }
-        el.textContent = value + suffix;
-        if(progress < 1) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-      statIO.unobserve(el);
-    });
-  }, {threshold:0.5});
-  statNodes.forEach(el => statIO.observe(el));
-
-  // ===== Contact form — real send via Resend =====
-  const contactForm = document.getElementById('contactForm');
-  const contactError = document.getElementById('contactError');
-  const contactSuccess = document.getElementById('contactSuccess');
-  const contactSubmitBtn = document.getElementById('contactSubmitBtn');
-
-  if(contactForm){
-    contactForm.addEventListener('submit', async (e) => {
+    if(authForm) authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      contactError.textContent = '';
-      contactSuccess.textContent = '';
-      contactSubmitBtn.disabled = true;
-      contactSubmitBtn.textContent = 'Sending…';
+      if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
+      authError.textContent = '';
+      authSubmitBtn.disabled = true;
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      try{
+        const { error } = authMode === 'signup'
+          ? await supabase.auth.signUp({ email, password })
+          : await supabase.auth.signInWithPassword({ email, password });
+        if(error) throw error;
+        closeAuthModal();
+        authForm.reset();
+      } catch(err){
+        authError.textContent = err.message || 'Something went wrong';
+      } finally{
+        authSubmitBtn.disabled = false;
+      }
+    });
 
-      const payload = {
-        name: document.getElementById('contactName').value.trim(),
-        email: document.getElementById('contactEmail').value.trim(),
-        message: document.getElementById('contactMessage').value.trim(),
-      };
+    if(googleAuthBtn) googleAuthBtn.addEventListener('click', async () => {
+      if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
+      await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    });
+
+    if(navLogoutBtn) navLogoutBtn.addEventListener('click', async () => {
+      if(!supabase) return;
+      await supabase.auth.signOut();
+    });
+
+    if(supabase){
+      supabase.auth.getSession().then(({ data }) => updateAuthUI(data.session));
+      supabase.auth.onAuthStateChange((_event, session) => updateAuthUI(session));
+    }
+  } catch(e){
+    console.warn('Auth modal setup failed:', e);
+  }
+
+  // ===== AI Builder demo + Save/Publish =====
+  try {
+    function setStatus(text, tone){
+      builderStatus.textContent = text;
+      builderStatus.style.background = tone === 'error' ? '#b91c1c' : '';
+    }
+
+    async function runBuilderDemo(){
+      const description = bizPrompt.value.trim();
+      if(!description){ setStatus('Type a description first', 'error'); return; }
+      generateBtn.disabled = true;
+      builderFrame.classList.add('is-loading');
+      setStatus('Generating…');
+      builderSaveStatus.textContent = '';
+      lastSavedSiteId = null;
+      publishSiteBtn.disabled = true;
 
       try{
-        const res = await fetch('/.netlify/functions/send-contact', {
+        const res = await fetch('/.netlify/functions/generate-website', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ description }),
         });
         const data = await res.json();
-        if(!res.ok) throw new Error(data.error || 'Something went wrong');
-        contactSuccess.textContent = 'Message sent — we\u2019ll be in touch soon.';
-        contactForm.reset();
+        if(!res.ok){ throw new Error(data.error || 'Something went wrong'); }
+        // Rendered via srcdoc into a sandboxed iframe (sandbox="") — scripts
+        // and same-origin access are blocked even though this HTML came
+        // from an AI response shaped by untrusted visitor input.
+        previewFrame.srcdoc = data.html;
+        builderFrame.classList.add('has-content');
+        setStatus(`Ready (${data.imagesGenerated ?? 0}/${data.imagesRequested ?? 3} images)`);
+        lastGeneratedHtml = data.html;
+        lastGeneratedDescription = description;
+        saveSiteBtn.disabled = !currentSession;
       } catch(err){
-        contactError.textContent = err.message || 'Couldn\u2019t send — try again.';
+        setStatus('Couldn\u2019t generate — try again', 'error');
+        console.error('Builder demo error:', err);
       } finally{
-        contactSubmitBtn.disabled = false;
-        contactSubmitBtn.textContent = 'Send message';
+        generateBtn.disabled = false;
+        builderFrame.classList.remove('is-loading');
+      }
+    }
+
+    if(generateBtn){
+      generateBtn.addEventListener('click', runBuilderDemo);
+      bizPrompt.addEventListener('keydown', (e) => { if(e.key === 'Enter') runBuilderDemo(); });
+    }
+
+    if(saveSiteBtn) saveSiteBtn.addEventListener('click', async () => {
+      if(!supabase || !currentSession){ openAuthModal('login'); return; }
+      if(!lastGeneratedHtml) return;
+      saveSiteBtn.disabled = true;
+      builderSaveStatus.textContent = 'Saving…';
+      try{
+        const res = await fetch('/.netlify/functions/save-site', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({
+            id: lastSavedSiteId || undefined,
+            description: lastGeneratedDescription,
+            html: lastGeneratedHtml,
+          }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Save failed');
+        lastSavedSiteId = data.id;
+        builderSaveStatus.textContent = 'Saved to your account.';
+        publishSiteBtn.disabled = false;
+      } catch(err){
+        builderSaveStatus.textContent = 'Couldn\u2019t save — try again.';
+        console.error('Save error:', err);
+      } finally{
+        saveSiteBtn.disabled = false;
       }
     });
+
+    if(publishSiteBtn) publishSiteBtn.addEventListener('click', async () => {
+      if(!supabase || !currentSession || !lastSavedSiteId) return;
+      publishSiteBtn.disabled = true;
+      builderSaveStatus.textContent = 'Publishing…';
+      try{
+        const res = await fetch('/.netlify/functions/publish-site', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({ id: lastSavedSiteId }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || 'Publish failed');
+        builderSaveStatus.innerHTML = `Published: <a href="${data.url}" target="_blank" rel="noopener">${data.url}</a>`;
+      } catch(err){
+        builderSaveStatus.textContent = 'Couldn\u2019t publish — try again.';
+        console.error('Publish error:', err);
+        publishSiteBtn.disabled = false;
+      }
+    });
+  } catch(e){
+    console.warn('AI Builder demo setup failed:', e);
+  }
+
+  // ===== FAQ accordion =====
+  try {
+    document.querySelectorAll('.faq-item').forEach(item => {
+      const q = item.querySelector('.faq-q');
+      const a = item.querySelector('.faq-a');
+      q.addEventListener('click', () => {
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(other => {
+          if(other !== item){
+            other.classList.remove('open');
+            other.querySelector('.faq-a').style.maxHeight = null;
+          }
+        });
+        item.classList.toggle('open');
+        a.style.maxHeight = isOpen ? null : a.scrollHeight + 'px';
+      });
+    });
+  } catch(e){
+    console.warn('FAQ accordion setup failed:', e);
+  }
+
+  // ===== Animated stat counters =====
+  try {
+    const statNodes = document.querySelectorAll('.stat-num');
+    const statIO = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(!entry.isIntersecting) return;
+        const el = entry.target;
+        const target = parseFloat(el.dataset.count);
+        const decimals = el.dataset.decimal ? 1 : 0;
+        const suffix = el.dataset.suffix || '';
+        const decimalDigit = el.dataset.decimal || '';
+        const duration = 1400;
+        const start = performance.now();
+        function tick(now){
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          let value;
+          if(decimals){
+            value = (target + parseFloat('0.' + decimalDigit) * progress).toFixed(1);
+          } else {
+            value = Math.floor(eased * target);
+          }
+          el.textContent = value + suffix;
+          if(progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+        statIO.unobserve(el);
+      });
+    }, {threshold:0.5});
+    statNodes.forEach(el => statIO.observe(el));
+  } catch(e){
+    console.warn('Stat counter setup failed:', e);
+  }
+
+  // ===== Contact form — real send via Resend =====
+  try {
+    const contactForm = document.getElementById('contactForm');
+    const contactError = document.getElementById('contactError');
+    const contactSuccess = document.getElementById('contactSuccess');
+    const contactSubmitBtn = document.getElementById('contactSubmitBtn');
+
+    if(contactForm){
+      contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        contactError.textContent = '';
+        contactSuccess.textContent = '';
+        contactSubmitBtn.disabled = true;
+        contactSubmitBtn.textContent = 'Sending…';
+
+        const payload = {
+          name: document.getElementById('contactName').value.trim(),
+          email: document.getElementById('contactEmail').value.trim(),
+          message: document.getElementById('contactMessage').value.trim(),
+        };
+
+        try{
+          const res = await fetch('/.netlify/functions/send-contact', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if(!res.ok) throw new Error(data.error || 'Something went wrong');
+          contactSuccess.textContent = 'Message sent — we\u2019ll be in touch soon.';
+          contactForm.reset();
+        } catch(err){
+          contactError.textContent = err.message || 'Couldn\u2019t send — try again.';
+        } finally{
+          contactSubmitBtn.disabled = false;
+          contactSubmitBtn.textContent = 'Send message';
+        }
+      });
+    }
+  } catch(e){
+    console.warn('Contact form setup failed:', e);
+  }
+  // ===== Legal modals (Privacy / Terms / Refund) =====
+  try {
+    const legalContent = {
+      privacy: `
+        <h3>Privacy Policy</h3>
+        <p class="legal-updated">Last updated: July 2026</p>
+        <p>Launchify Sites ("we," "us") provides this policy to explain what information we collect when you use launchifysites.com and our related services, and how we use it.</p>
+        <h4>Information we collect</h4>
+        <ul>
+          <li>Account information: your email address and authentication details when you sign up (via email/password or Google sign-in)</li>
+          <li>Content you generate: business descriptions and site content created through our AI website builder</li>
+          <li>Order and billing information processed through Stripe, PayPal, or Klarna — we do not store your full card details ourselves</li>
+          <li>Contact form submissions, including your name, email, and message</li>
+        </ul>
+        <h4>How we use it</h4>
+        <ul>
+          <li>To create and deliver your website</li>
+          <li>To operate your account, including saved and published sites</li>
+          <li>To respond to support requests</li>
+          <li>To improve our services</li>
+        </ul>
+        <h4>Third parties we work with</h4>
+        <p>We use Supabase for account and data storage, Anthropic and OpenAI for AI-generated content, Resend for email delivery, Netlify for hosting, and Stripe/PayPal/Klarna for payments. Each of these providers processes data under their own privacy terms.</p>
+        <h4>Your rights</h4>
+        <p>You can request access to, correction of, or deletion of your personal data at any time by contacting hello@launchifysites.com.</p>
+        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business handling real customer data, have it reviewed by a qualified attorney familiar with applicable privacy laws (e.g., CCPA, GDPR) for your situation.</div>
+      `,
+      terms: `
+        <h3>Terms of Service</h3>
+        <p class="legal-updated">Last updated: July 2026</p>
+        <p>These terms govern your use of Launchify Sites' website design and AI website builder services. By purchasing a plan or creating an account, you agree to these terms.</p>
+        <h4>Our services</h4>
+        <p>Launchify Sites provides done-for-you website design services, delivered within the timeframe stated for your selected plan (Starter, Professional, Business, or Enterprise). Our AI-assisted preview tool generates draft content and imagery for illustrative purposes; final delivered sites are reviewed and refined by our team.</p>
+        <h4>Payment</h4>
+        <p>Plans are billed as stated at checkout via Stripe, PayPal, or Klarna. Custom/Enterprise pricing is agreed separately in writing.</p>
+        <h4>Client responsibilities</h4>
+        <p>You are responsible for providing accurate business information, timely feedback during the build process, and ensuring you have the rights to any content, logos, or trademarks you ask us to include.</p>
+        <h4>Ownership</h4>
+        <p>Once delivered and paid in full, you own the content and design of your website. Launchify Sites retains no ownership claim over your delivered site.</p>
+        <h4>Limitations</h4>
+        <p>Our AI-assisted tools may occasionally generate content that requires correction; final review is part of our delivery process. We are not liable for indirect or consequential damages arising from use of our services.</p>
+        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business, have it reviewed by a qualified attorney to ensure it fits your actual business terms and local law.</div>
+      `,
+      refund: `
+        <h3>Refund Policy</h3>
+        <p class="legal-updated">Last updated: July 2026</p>
+        <p>We want you to be satisfied with your new website. Here's how refunds work for each stage of the process.</p>
+        <h4>Before we begin production</h4>
+        <p>If you cancel before submitting your project questionnaire, you're eligible for a full refund.</p>
+        <h4>During production</h4>
+        <p>Once we've begun designing your site, refunds are prorated based on work completed. Contact us and we'll assess where your project stands.</p>
+        <h4>After delivery</h4>
+        <p>Because each site is custom-built for your business, we don't offer refunds after final delivery and approval. If something doesn't match what was agreed upon, contact us first — we'll fix it.</p>
+        <h4>How to request a refund</h4>
+        <p>Email hello@launchifysites.com with your order details. We aim to respond within 2 business days.</p>
+        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Review and adjust it to match your actual refund practices before relying on it for real transactions.</div>
+      `,
+    };
+
+    const legalOverlay = document.getElementById('legalOverlay');
+    const legalBody = document.getElementById('legalBody');
+    const legalCloseBtn = document.getElementById('legalCloseBtn');
+
+    function openLegalModal(key){
+      if(!legalContent[key]) return;
+      legalBody.innerHTML = legalContent[key];
+      legalOverlay.classList.add('open');
+    }
+    function closeLegalModal(){ legalOverlay.classList.remove('open'); }
+
+    document.querySelectorAll('.footer-link-btn[data-modal]').forEach(btn => {
+      btn.addEventListener('click', () => openLegalModal(btn.dataset.modal));
+    });
+    if(legalCloseBtn) legalCloseBtn.addEventListener('click', closeLegalModal);
+    if(legalOverlay) legalOverlay.addEventListener('click', (e) => { if(e.target === legalOverlay) closeLegalModal(); });
+  } catch(e){
+    console.warn('Legal modal setup failed:', e);
   }
 </script>
 </body>
