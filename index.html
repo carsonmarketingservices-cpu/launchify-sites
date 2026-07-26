@@ -1074,14 +1074,14 @@
     </div>
     <div class="footer-col">
       <h5>Company</h5>
-      <a href="#top">About</a>
+      <button class="footer-link-btn" data-modal="about">About</button>
       <a href="#pricing">Pricing</a>
       <a href="#portfolio">Portfolio</a>
       <a href="#faq">FAQ</a>
     </div>
     <div class="footer-col">
       <h5>Support</h5>
-      <a href="#faq">Help Center</a>
+      <button class="footer-link-btn" data-modal="help">Help Center</button>
       <a href="mailto:hello@launchifysites.com">Contact</a>
       <button class="footer-link-btn" data-modal="refund">Refund Policy</button>
     </div>
@@ -1488,6 +1488,29 @@
   // ===== Legal modals (Privacy / Terms / Refund) =====
   try {
     const legalContent = {
+      about: `
+        <h3>About Launchify Sites</h3>
+        <p>Launchify Sites helps entrepreneurs, startups, creators, nonprofits, churches, coaches, restaurants, and local businesses launch beautiful websites in days instead of weeks.</p>
+        <p>Today, we're a done-for-you service: you tell us about your business, our AI-assisted tools generate a real starting point — layout, copy, and imagery — and our team refines it into your finished, published site.</p>
+        <h4>What makes us different</h4>
+        <ul>
+          <li>Real AI generation, not templates with swapped text — every preview is built fresh for your specific business</li>
+          <li>Expert review on every delivered site, not just an automated output</li>
+          <li>Fast turnaround — most sites ship in 2-5 days depending on plan</li>
+        </ul>
+        <p>Questions about working with us? Reach out any time at hello@launchifysites.com.</p>
+      `,
+      help: `
+        <h3>Help Center</h3>
+        <p>Common questions are answered in the FAQ section on this page.</p>
+        <h4>Quick answers</h4>
+        <ul>
+          <li><strong>How fast is delivery?</strong> 2-5 business days depending on your plan</li>
+          <li><strong>Can I edit my site myself?</strong> Add the optional Client Portal to any plan for self-editing, or we handle updates for you by default</li>
+          <li><strong>What if something's wrong with my delivered site?</strong> Contact us and we'll fix it — see our Refund Policy for specifics</li>
+        </ul>
+        <p>Can't find what you need? Email hello@launchifysites.com and we'll get back to you within 2 business days.</p>
+      `,
       privacy: `
         <h3>Privacy Policy</h3>
         <p class="legal-updated">Last updated: July 2026</p>
