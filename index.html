@@ -400,15 +400,15 @@
   .before-after h3{font-size:24px; margin:14px 0;}
   .before-after p{color:var(--ink-soft);}
   .ba-visual{display:flex; gap:16px;}
-  .ba-panel{flex:1; border-radius:14px; padding:20px; position:relative;}
-  .ba-before{background:var(--bg-soft); border:1px dashed var(--line);}
-  .ba-after{background:var(--navy);}
-  .ba-label{position:absolute; top:-10px; left:16px; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; background:#fff; border:1px solid var(--line);}
-  .ba-after .ba-label{background:var(--turquoise); color:#fff; border:none;}
-  .ba-line{height:9px; border-radius:6px; background:#dfe6ea; margin-bottom:10px; margin-top:14px;}
-  .ba-line.grad{background:var(--grad); opacity:0.85;}
-  .ba-block{height:60px; border-radius:10px; background:#dfe6ea; margin-top:14px;}
-  .ba-block.grad{background:var(--grad); opacity:0.3;}
+  .ba-panel{flex:1; border-radius:14px; padding:0; position:relative; overflow:hidden; height:220px;}
+  .ba-panel img{width:100%; height:100%; object-fit:cover; display:block;}
+  .ba-before img{filter:grayscale(75%) contrast(0.92) brightness(0.92);}
+  .ba-label{
+    position:absolute; top:12px; left:12px; z-index:1; font-size:11px; font-weight:700;
+    padding:4px 12px; border-radius:999px; background:rgba(255,255,255,0.92); color:var(--navy);
+    box-shadow:0 2px 6px rgba(0,0,0,0.12);
+  }
+  .ba-after .ba-label{background:var(--turquoise); color:#fff;}
   @media (max-width:900px){.before-after{grid-template-columns:1fr;}}
 
   /* ===== TESTIMONIALS ===== */
@@ -920,15 +920,11 @@
       <div class="ba-visual">
         <div class="ba-panel ba-before">
           <span class="ba-label">Before</span>
-          <div class="ba-line" style="width:70%;"></div>
-          <div class="ba-line" style="width:45%;"></div>
-          <div class="ba-block"></div>
+          <img src="https://images.unsplash.com/photo-1774352724311-ba2694681e83?auto=format&fit=crop&w=700&q=70&sat=-100" alt="Cluttered, disorganized paperwork representing an outdated, hard-to-navigate site">
         </div>
         <div class="ba-panel ba-after">
           <span class="ba-label">After</span>
-          <div class="ba-line grad" style="width:80%;"></div>
-          <div class="ba-line grad" style="width:55%;"></div>
-          <div class="ba-block grad"></div>
+          <img src="https://images.unsplash.com/photo-1643430678195-8f7235f2fac3?auto=format&fit=crop&w=700&q=80" alt="Clean, minimalist desk setup representing a clear, modern site">
         </div>
       </div>
     </div>
