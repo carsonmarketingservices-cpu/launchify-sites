@@ -1108,34 +1108,24 @@
 </div>
 
 <script>
-  // header scroll state
+try {
+
+  // ===== Header scroll state =====
   const header = document.getElementById('siteHeader');
-  window.addEventListener('scroll', () => {
-    header.classList.toggle('scrolled', window.scrollY > 12);
-  });
-  // mobile nav
-  const navToggle = document.getElementById('navToggle');
-  const mobilePanel = document.getElementById('mobilePanel');
-  navToggle.addEventListener('click', () => {
-    navToggle.classList.toggle('open');
-    mobilePanel.classList.toggle('open');
-  });
-  mobilePanel.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-    navToggle.classList.remove('open'); mobilePanel.classList.remove('open');
-  }));
-  // reveal on scroll — content is visible by default via CSS (.reveal{opacity:1}).
-  // This only ADDS a fade-in animation on top for browsers that support
-  // IntersectionObserver; if this block fails for any reason, the page
-  // simply has no fade-in effect instead of hidden content.
+  if(header){
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 12);
+    });
+  }
+
+  // ===== Reveal on scroll =====
+  // Content is visible by default via CSS (.reveal{opacity:1}); this only
+  // ADDS a fade-in animation on top where IntersectionObserver is available.
   try {
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
     }, {threshold:0.15});
-    document.querySelectorAll('.reveal').forEach(el => {
-      el.classList.add('js-anim');
-      io.observe(el);
-    });
-    // Still keep a safety net in case an element never intersects for some reason.
+    document.querySelectorAll('.reveal').forEach(el => { el.classList.add('js-anim'); io.observe(el); });
     window.addEventListener('load', () => {
       setTimeout(() => {
         document.querySelectorAll('.reveal:not(.in)').forEach(el => el.classList.add('in'));
@@ -1145,10 +1135,7 @@
     console.warn('Reveal animation setup failed, content remains visible without animation:', e);
   }
 
-  // One deliberate motion moment: the hero background blobs drift very
-  // slightly toward the cursor. Kept subtle and confined to the hero only.
-  // Wrapped in its own try/catch — same principle as the reveal fix above:
-  // no single feature should be able to take down everything after it.
+  // ===== Hero parallax (one deliberate motion moment) =====
   try {
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const heroBlob1 = document.getElementById('heroBlob1');
@@ -1168,248 +1155,421 @@
   }
 
   // ===== Supabase client =====
-  // These two values are meant to be public — same as any client-side
-  // Supabase app. Fill in your real Launchify project's URL + anon key.
-  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL'; // e.g. https://xxxxx.supabase.co
+  const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   let supabase = null;
   try {
     supabase = SUPABASE_URL.startsWith('http')
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
       : null;
-    if(!supabase){
-      console.warn('Supabase is not configured yet — fill in SUPABASE_URL and SUPABASE_ANON_KEY in index.html. Auth, save, and publish will not work until then.');
-    }
+    if(!supabase) console.warn('Supabase is not configured yet — fill in SUPABASE_URL and SUPABASE_ANON_KEY. Auth, save, and publish will not work until then.');
   } catch(e){
     console.warn('Supabase client failed to initialize:', e);
   }
+
+  // ===== Shared state =====
   let currentSession = null;
-
-  // All DOM lookups below are safe even if an element is missing —
-  // getElementById/querySelector never throw, they just return null.
-  // Only the code that USES these (attaching listeners, calling methods
-  // on them) can throw, which is why every section below wraps its own
-  // attachment logic separately. A failure in one feature can no longer
-  // prevent any other feature — including the FAQ accordion — from working.
-  const authOverlay = document.getElementById('authOverlay');
-  const authForm = document.getElementById('authForm');
-  const authEmail = document.getElementById('authEmail');
-  const authPassword = document.getElementById('authPassword');
-  const authError = document.getElementById('authError');
-  const authSubmitBtn = document.getElementById('authSubmitBtn');
-  const authTabs = document.querySelectorAll('.auth-tab');
-  const navLoginBtn = document.getElementById('navLoginBtn');
-  const navLogoutBtn = document.getElementById('navLogoutBtn');
-  const navUserState = document.getElementById('navUserState');
-  const navUserEmail = document.getElementById('navUserEmail');
-  const googleAuthBtn = document.getElementById('googleAuthBtn');
   let authMode = 'login';
-
-  const generateBtn = document.getElementById('generateBtn');
-  const builderFrame = document.getElementById('builderFrame');
-  const builderStatus = document.getElementById('builderStatus');
-  const bizPrompt = document.getElementById('bizPrompt');
-  const previewFrame = document.getElementById('previewFrame');
-  const saveSiteBtn = document.getElementById('saveSiteBtn');
-  const publishSiteBtn = document.getElementById('publishSiteBtn');
-  const builderSaveStatus = document.getElementById('builderSaveStatus');
   let lastGeneratedHtml = null;
   let lastGeneratedDescription = null;
   let lastSavedSiteId = null;
 
-  function openAuthModal(mode){
-    authMode = mode || 'login';
-    authTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === authMode));
-    authSubmitBtn.textContent = authMode === 'signup' ? 'Sign up' : 'Log in';
-    authError.textContent = '';
-    authOverlay.classList.add('open');
-  }
-  function closeAuthModal(){ authOverlay.classList.remove('open'); }
+  // ===== Legal modal content (data only — cannot throw) =====
+  const legalContent = {
+    about: `
+      <h3>About Launchify Sites</h3>
+      <p>Launchify Sites helps entrepreneurs, startups, creators, nonprofits, churches, coaches, restaurants, and local businesses launch beautiful websites in days instead of weeks.</p>
+      <p>Today, we're a done-for-you service: you tell us about your business, our AI-assisted tools generate a real starting point — layout, copy, and imagery — and our team refines it into your finished, published site.</p>
+      <h4>What makes us different</h4>
+      <ul>
+        <li>Real AI generation, not templates with swapped text — every preview is built fresh for your specific business</li>
+        <li>Expert review on every delivered site, not just an automated output</li>
+        <li>Fast turnaround — most sites ship in 2-5 days depending on plan</li>
+      </ul>
+      <p>Questions about working with us? Reach out any time at hello@launchifysites.com.</p>
+    `,
+    help: `
+      <h3>Help Center</h3>
+      <p>Common questions are answered in the FAQ section on this page.</p>
+      <h4>Quick answers</h4>
+      <ul>
+        <li><strong>How fast is delivery?</strong> 2-5 business days depending on your plan</li>
+        <li><strong>Can I edit my site myself?</strong> Add the optional Client Portal to any plan for self-editing, or we handle updates for you by default</li>
+        <li><strong>What if something's wrong with my delivered site?</strong> Contact us and we'll fix it — see our Refund Policy for specifics</li>
+      </ul>
+      <p>Can't find what you need? Email hello@launchifysites.com and we'll get back to you within 2 business days.</p>
+    `,
+    privacy: `
+      <h3>Privacy Policy</h3>
+      <p class="legal-updated">Last updated: July 2026</p>
+      <p>Launchify Sites ("we," "us") provides this policy to explain what information we collect when you use launchifysites.com and our related services, and how we use it.</p>
+      <h4>Information we collect</h4>
+      <ul>
+        <li>Account information: your email address and authentication details when you sign up (via email/password or Google sign-in)</li>
+        <li>Content you generate: business descriptions and site content created through our AI website builder</li>
+        <li>Order and billing information processed through Stripe, PayPal, or Klarna — we do not store your full card details ourselves</li>
+        <li>Contact form submissions, including your name, email, and message</li>
+      </ul>
+      <h4>How we use it</h4>
+      <ul>
+        <li>To create and deliver your website</li>
+        <li>To operate your account, including saved and published sites</li>
+        <li>To respond to support requests</li>
+        <li>To improve our services</li>
+      </ul>
+      <h4>Third parties we work with</h4>
+      <p>We use Supabase for account and data storage, Anthropic and OpenAI for AI-generated content, Resend for email delivery, Netlify for hosting, and Stripe/PayPal/Klarna for payments. Each of these providers processes data under their own privacy terms.</p>
+      <h4>Your rights</h4>
+      <p>You can request access to, correction of, or deletion of your personal data at any time by contacting hello@launchifysites.com.</p>
+      <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business handling real customer data, have it reviewed by a qualified attorney familiar with applicable privacy laws (e.g., CCPA, GDPR) for your situation.</div>
+    `,
+    terms: `
+      <h3>Terms of Service</h3>
+      <p class="legal-updated">Last updated: July 2026</p>
+      <p>These terms govern your use of Launchify Sites' website design and AI website builder services. By purchasing a plan or creating an account, you agree to these terms.</p>
+      <h4>Our services</h4>
+      <p>Launchify Sites provides done-for-you website design services, delivered within the timeframe stated for your selected plan (Starter, Professional, Business, or Enterprise). Our AI-assisted preview tool generates draft content and imagery for illustrative purposes; final delivered sites are reviewed and refined by our team.</p>
+      <h4>Payment</h4>
+      <p>Plans are billed as stated at checkout via Stripe, PayPal, or Klarna. Custom/Enterprise pricing is agreed separately in writing.</p>
+      <h4>Client responsibilities</h4>
+      <p>You are responsible for providing accurate business information, timely feedback during the build process, and ensuring you have the rights to any content, logos, or trademarks you ask us to include.</p>
+      <h4>Ownership</h4>
+      <p>Once delivered and paid in full, you own the content and design of your website. Launchify Sites retains no ownership claim over your delivered site.</p>
+      <h4>Limitations</h4>
+      <p>Our AI-assisted tools may occasionally generate content that requires correction; final review is part of our delivery process. We are not liable for indirect or consequential damages arising from use of our services.</p>
+      <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business, have it reviewed by a qualified attorney to ensure it fits your actual business terms and local law.</div>
+    `,
+    refund: `
+      <h3>Refund Policy</h3>
+      <p class="legal-updated">Last updated: July 2026</p>
+      <p>We want you to be satisfied with your new website. Here's how refunds work for each stage of the process.</p>
+      <h4>Before we begin production</h4>
+      <p>If you cancel before submitting your project questionnaire, you're eligible for a full refund.</p>
+      <h4>During production</h4>
+      <p>Once we've begun designing your site, refunds are prorated based on work completed. Contact us and we'll assess where your project stands.</p>
+      <h4>After delivery</h4>
+      <p>Because each site is custom-built for your business, we don't offer refunds after final delivery and approval. If something doesn't match what was agreed upon, contact us first — we'll fix it.</p>
+      <h4>How to request a refund</h4>
+      <p>Email hello@launchifysites.com with your order details. We aim to respond within 2 business days.</p>
+      <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Review and adjust it to match your actual refund practices before relying on it for real transactions.</div>
+    `,
+  };
 
+  // ===== Helper functions (defined, not executed — safe regardless) =====
+  function openAuthModal(mode){
+    const el = document.getElementById('authOverlay');
+    if(!el) return;
+    authMode = mode || 'login';
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === authMode));
+    const submitBtn = document.getElementById('authSubmitBtn');
+    if(submitBtn) submitBtn.textContent = authMode === 'signup' ? 'Sign up' : 'Log in';
+    const err = document.getElementById('authError');
+    if(err) err.textContent = '';
+    el.classList.add('open');
+  }
+  function closeAuthModal(){
+    const el = document.getElementById('authOverlay');
+    if(el) el.classList.remove('open');
+  }
   function updateAuthUI(session){
     currentSession = session;
     const loggedIn = !!session;
+    const navLoginBtn = document.getElementById('navLoginBtn');
+    const navUserState = document.getElementById('navUserState');
+    const navUserEmail = document.getElementById('navUserEmail');
+    const saveSiteBtn = document.getElementById('saveSiteBtn');
+    const publishSiteBtn = document.getElementById('publishSiteBtn');
     if(navLoginBtn) navLoginBtn.style.display = loggedIn ? 'none' : 'inline-flex';
     if(navUserState) navUserState.style.display = loggedIn ? 'flex' : 'none';
     if(loggedIn && navUserEmail) navUserEmail.textContent = session.user.email;
     if(saveSiteBtn) saveSiteBtn.disabled = !loggedIn || !lastGeneratedHtml;
-    if(publishSiteBtn) publishSiteBtn.disabled = true; // only enabled after a successful save
+    if(publishSiteBtn) publishSiteBtn.disabled = true;
+  }
+  function openLegalModal(key){
+    if(!legalContent[key]) return;
+    const overlay = document.getElementById('legalOverlay');
+    const body = document.getElementById('legalBody');
+    if(!overlay || !body) return;
+    body.innerHTML = legalContent[key];
+    overlay.classList.add('open');
+  }
+  function closeLegalModal(){
+    const overlay = document.getElementById('legalOverlay');
+    if(overlay) overlay.classList.remove('open');
+  }
+  function setBuilderStatus(text, tone){
+    const el = document.getElementById('builderStatus');
+    if(!el) return;
+    el.textContent = text;
+    el.style.background = tone === 'error' ? '#b91c1c' : '';
   }
 
-  // ===== Auth modal setup =====
-  try {
-    if(navLoginBtn) navLoginBtn.addEventListener('click', () => openAuthModal('login'));
-    const authCloseBtn = document.getElementById('authCloseBtn');
-    if(authCloseBtn) authCloseBtn.addEventListener('click', closeAuthModal);
-    if(authOverlay) authOverlay.addEventListener('click', (e) => { if(e.target === authOverlay) closeAuthModal(); });
-    authTabs.forEach(tab => tab.addEventListener('click', () => openAuthModal(tab.dataset.tab)));
+  async function runBuilderDemo(){
+    const bizPrompt = document.getElementById('bizPrompt');
+    const generateBtn = document.getElementById('generateBtn');
+    const builderFrame = document.getElementById('builderFrame');
+    const previewFrame = document.getElementById('previewFrame');
+    const builderSaveStatus = document.getElementById('builderSaveStatus');
+    const saveSiteBtn = document.getElementById('saveSiteBtn');
+    const publishSiteBtn = document.getElementById('publishSiteBtn');
+    if(!bizPrompt || !generateBtn || !builderFrame || !previewFrame) return;
 
-    if(authForm) authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
-      authError.textContent = '';
-      authSubmitBtn.disabled = true;
-      const email = authEmail.value.trim();
-      const password = authPassword.value;
-      try{
-        const { error } = authMode === 'signup'
-          ? await supabase.auth.signUp({ email, password })
-          : await supabase.auth.signInWithPassword({ email, password });
-        if(error) throw error;
-        closeAuthModal();
-        authForm.reset();
-      } catch(err){
-        authError.textContent = err.message || 'Something went wrong';
-      } finally{
-        authSubmitBtn.disabled = false;
+    const description = bizPrompt.value.trim();
+    if(!description){ setBuilderStatus('Type a description first', 'error'); return; }
+
+    generateBtn.disabled = true;
+    builderFrame.classList.add('is-loading');
+    setBuilderStatus('Generating…');
+    if(builderSaveStatus) builderSaveStatus.textContent = '';
+    lastSavedSiteId = null;
+    if(publishSiteBtn) publishSiteBtn.disabled = true;
+
+    try{
+      const res = await fetch('/.netlify/functions/generate-website', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ description }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Something went wrong');
+      previewFrame.srcdoc = data.html;
+      builderFrame.classList.add('has-content');
+      setBuilderStatus(`Ready (${data.imagesGenerated ?? 0}/${data.imagesRequested ?? 3} images)`);
+      lastGeneratedHtml = data.html;
+      lastGeneratedDescription = description;
+      if(saveSiteBtn) saveSiteBtn.disabled = !currentSession;
+    } catch(err){
+      setBuilderStatus('Couldn\u2019t generate — try again', 'error');
+      console.error('Builder demo error:', err);
+    } finally{
+      generateBtn.disabled = false;
+      builderFrame.classList.remove('is-loading');
+    }
+  }
+
+  async function saveSite(){
+    const saveSiteBtn = document.getElementById('saveSiteBtn');
+    const publishSiteBtn = document.getElementById('publishSiteBtn');
+    const builderSaveStatus = document.getElementById('builderSaveStatus');
+    if(!supabase || !currentSession){ openAuthModal('login'); return; }
+    if(!lastGeneratedHtml || !saveSiteBtn) return;
+    saveSiteBtn.disabled = true;
+    if(builderSaveStatus) builderSaveStatus.textContent = 'Saving…';
+    try{
+      const res = await fetch('/.netlify/functions/save-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
+        body: JSON.stringify({ id: lastSavedSiteId || undefined, description: lastGeneratedDescription, html: lastGeneratedHtml }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Save failed');
+      lastSavedSiteId = data.id;
+      if(builderSaveStatus) builderSaveStatus.textContent = 'Saved to your account.';
+      if(publishSiteBtn) publishSiteBtn.disabled = false;
+    } catch(err){
+      if(builderSaveStatus) builderSaveStatus.textContent = 'Couldn\u2019t save — try again.';
+      console.error('Save error:', err);
+    } finally{
+      saveSiteBtn.disabled = false;
+    }
+  }
+
+  async function publishSite(){
+    const publishSiteBtn = document.getElementById('publishSiteBtn');
+    const builderSaveStatus = document.getElementById('builderSaveStatus');
+    if(!supabase || !currentSession || !lastSavedSiteId || !publishSiteBtn) return;
+    publishSiteBtn.disabled = true;
+    if(builderSaveStatus) builderSaveStatus.textContent = 'Publishing…';
+    try{
+      const res = await fetch('/.netlify/functions/publish-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
+        body: JSON.stringify({ id: lastSavedSiteId }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Publish failed');
+      if(builderSaveStatus) builderSaveStatus.innerHTML = `Published: <a href="${data.url}" target="_blank" rel="noopener">${data.url}</a>`;
+    } catch(err){
+      if(builderSaveStatus) builderSaveStatus.textContent = 'Couldn\u2019t publish — try again.';
+      console.error('Publish error:', err);
+      publishSiteBtn.disabled = false;
+    }
+  }
+
+  async function shareThisPage(){
+    const shareBtnLabel = document.getElementById('shareBtnLabel');
+    const shareData = {
+      title: 'Launchify Sites — Launch Your Website Faster Than Ever',
+      text: 'Professional websites built with AI and refined by experts.',
+      url: window.location.href,
+    };
+    try{
+      if(navigator.share){
+        await navigator.share(shareData);
+      } else if(navigator.clipboard){
+        await navigator.clipboard.writeText(shareData.url);
+        if(shareBtnLabel){
+          const original = shareBtnLabel.textContent;
+          shareBtnLabel.textContent = 'Link copied!';
+          setTimeout(() => { shareBtnLabel.textContent = original; }, 2000);
+        }
+      }
+    } catch(err){
+      if(err.name !== 'AbortError') console.warn('Share failed:', err);
+    }
+  }
+
+  function toggleFaqItem(item){
+    if(!item) return;
+    const a = item.querySelector('.faq-a');
+    if(!a) return;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(other => {
+      if(other !== item){
+        other.classList.remove('open');
+        const oa = other.querySelector('.faq-a');
+        if(oa) oa.style.maxHeight = null;
       }
     });
+    item.classList.toggle('open');
+    a.style.maxHeight = isOpen ? null : a.scrollHeight + 'px';
+  }
 
-    if(googleAuthBtn) googleAuthBtn.addEventListener('click', async () => {
-      if(!supabase){ authError.textContent = 'Auth is not configured yet.'; return; }
-      await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
-    });
+  // ===== ONE delegated click listener for every interactive element =====
+  // Instead of dozens of individual addEventListener calls (each a separate
+  // point where a missing element could throw and silently break everything
+  // registered after it), this single listener is registered once at the
+  // top level. Each branch below is independent — one branch's logic
+  // failing cannot prevent any other branch from working, because they
+  // only run when their specific element is actually clicked.
+  document.addEventListener('click', (e) => {
+    try {
+      const navToggle = e.target.closest('#navToggle');
+      if(navToggle){
+        navToggle.classList.toggle('open');
+        const panel = document.getElementById('mobilePanel');
+        if(panel) panel.classList.toggle('open');
+        return;
+      }
 
-    if(navLogoutBtn) navLogoutBtn.addEventListener('click', async () => {
-      if(!supabase) return;
-      await supabase.auth.signOut();
-    });
+      if(e.target.closest('#mobilePanel a')){
+        document.getElementById('navToggle')?.classList.remove('open');
+        document.getElementById('mobilePanel')?.classList.remove('open');
+        return;
+      }
 
+      if(e.target.closest('#navLoginBtn')){ openAuthModal('login'); return; }
+      if(e.target.closest('#authCloseBtn')){ closeAuthModal(); return; }
+      if(e.target.id === 'authOverlay'){ closeAuthModal(); return; }
+      const authTab = e.target.closest('.auth-tab');
+      if(authTab){ openAuthModal(authTab.dataset.tab); return; }
+
+      if(e.target.closest('#googleAuthBtn')){
+        if(!supabase){ const err = document.getElementById('authError'); if(err) err.textContent = 'Auth is not configured yet.'; return; }
+        supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+        return;
+      }
+      if(e.target.closest('#navLogoutBtn')){
+        if(supabase) supabase.auth.signOut();
+        return;
+      }
+
+      if(e.target.closest('#generateBtn')){ runBuilderDemo(); return; }
+      if(e.target.closest('#saveSiteBtn')){ saveSite(); return; }
+      if(e.target.closest('#publishSiteBtn')){ publishSite(); return; }
+
+      const faqQ = e.target.closest('.faq-q');
+      if(faqQ){ toggleFaqItem(faqQ.closest('.faq-item')); return; }
+
+      const legalBtn = e.target.closest('.footer-link-btn[data-modal]');
+      if(legalBtn){ openLegalModal(legalBtn.dataset.modal); return; }
+      if(e.target.closest('#legalCloseBtn')){ closeLegalModal(); return; }
+      if(e.target.id === 'legalOverlay'){ closeLegalModal(); return; }
+
+      if(e.target.closest('#sharePageBtn')){ shareThisPage(); return; }
+    } catch(err){
+      console.warn('Click handler error (this click type failed, others still work):', err);
+    }
+  });
+
+  // ===== ONE delegated submit listener for both forms =====
+  document.addEventListener('submit', async (e) => {
+    try {
+      if(e.target.id === 'authForm'){
+        e.preventDefault();
+        const authError = document.getElementById('authError');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        if(!supabase){ if(authError) authError.textContent = 'Auth is not configured yet.'; return; }
+        if(authError) authError.textContent = '';
+        if(authSubmitBtn) authSubmitBtn.disabled = true;
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        try{
+          const { error } = authMode === 'signup'
+            ? await supabase.auth.signUp({ email, password })
+            : await supabase.auth.signInWithPassword({ email, password });
+          if(error) throw error;
+          closeAuthModal();
+          e.target.reset();
+        } catch(err){
+          if(authError) authError.textContent = err.message || 'Something went wrong';
+        } finally{
+          if(authSubmitBtn) authSubmitBtn.disabled = false;
+        }
+        return;
+      }
+
+      if(e.target.id === 'contactForm'){
+        e.preventDefault();
+        const contactError = document.getElementById('contactError');
+        const contactSuccess = document.getElementById('contactSuccess');
+        const contactSubmitBtn = document.getElementById('contactSubmitBtn');
+        if(contactError) contactError.textContent = '';
+        if(contactSuccess) contactSuccess.textContent = '';
+        if(contactSubmitBtn){ contactSubmitBtn.disabled = true; contactSubmitBtn.textContent = 'Sending…'; }
+
+        const payload = {
+          name: document.getElementById('contactName').value.trim(),
+          email: document.getElementById('contactEmail').value.trim(),
+          message: document.getElementById('contactMessage').value.trim(),
+        };
+        try{
+          const res = await fetch('/.netlify/functions/send-contact', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if(!res.ok) throw new Error(data.error || 'Something went wrong');
+          if(contactSuccess) contactSuccess.textContent = 'Message sent — we\u2019ll be in touch soon.';
+          e.target.reset();
+        } catch(err){
+          if(contactError) contactError.textContent = err.message || 'Couldn\u2019t send — try again.';
+        } finally{
+          if(contactSubmitBtn){ contactSubmitBtn.disabled = false; contactSubmitBtn.textContent = 'Send message'; }
+        }
+      }
+    } catch(err){
+      console.warn('Submit handler error:', err);
+    }
+  });
+
+  // ===== Enter key in the AI builder prompt field =====
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && e.target.id === 'bizPrompt') runBuilderDemo();
+  });
+
+  // ===== Supabase auth state listener (not click-driven, separate concern) =====
+  try {
     if(supabase){
       supabase.auth.getSession().then(({ data }) => updateAuthUI(data.session));
       supabase.auth.onAuthStateChange((_event, session) => updateAuthUI(session));
     }
   } catch(e){
-    console.warn('Auth modal setup failed:', e);
+    console.warn('Auth state listener setup failed:', e);
   }
 
-  // ===== AI Builder demo + Save/Publish =====
-  try {
-    function setStatus(text, tone){
-      builderStatus.textContent = text;
-      builderStatus.style.background = tone === 'error' ? '#b91c1c' : '';
-    }
-
-    async function runBuilderDemo(){
-      const description = bizPrompt.value.trim();
-      if(!description){ setStatus('Type a description first', 'error'); return; }
-      generateBtn.disabled = true;
-      builderFrame.classList.add('is-loading');
-      setStatus('Generating…');
-      builderSaveStatus.textContent = '';
-      lastSavedSiteId = null;
-      publishSiteBtn.disabled = true;
-
-      try{
-        const res = await fetch('/.netlify/functions/generate-website', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ description }),
-        });
-        const data = await res.json();
-        if(!res.ok){ throw new Error(data.error || 'Something went wrong'); }
-        // Rendered via srcdoc into a sandboxed iframe (sandbox="") — scripts
-        // and same-origin access are blocked even though this HTML came
-        // from an AI response shaped by untrusted visitor input.
-        previewFrame.srcdoc = data.html;
-        builderFrame.classList.add('has-content');
-        setStatus(`Ready (${data.imagesGenerated ?? 0}/${data.imagesRequested ?? 3} images)`);
-        lastGeneratedHtml = data.html;
-        lastGeneratedDescription = description;
-        saveSiteBtn.disabled = !currentSession;
-      } catch(err){
-        setStatus('Couldn\u2019t generate — try again', 'error');
-        console.error('Builder demo error:', err);
-      } finally{
-        generateBtn.disabled = false;
-        builderFrame.classList.remove('is-loading');
-      }
-    }
-
-    if(generateBtn){
-      generateBtn.addEventListener('click', runBuilderDemo);
-      bizPrompt.addEventListener('keydown', (e) => { if(e.key === 'Enter') runBuilderDemo(); });
-    }
-
-    if(saveSiteBtn) saveSiteBtn.addEventListener('click', async () => {
-      if(!supabase || !currentSession){ openAuthModal('login'); return; }
-      if(!lastGeneratedHtml) return;
-      saveSiteBtn.disabled = true;
-      builderSaveStatus.textContent = 'Saving…';
-      try{
-        const res = await fetch('/.netlify/functions/save-site', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentSession.access_token}`,
-          },
-          body: JSON.stringify({
-            id: lastSavedSiteId || undefined,
-            description: lastGeneratedDescription,
-            html: lastGeneratedHtml,
-          }),
-        });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.error || 'Save failed');
-        lastSavedSiteId = data.id;
-        builderSaveStatus.textContent = 'Saved to your account.';
-        publishSiteBtn.disabled = false;
-      } catch(err){
-        builderSaveStatus.textContent = 'Couldn\u2019t save — try again.';
-        console.error('Save error:', err);
-      } finally{
-        saveSiteBtn.disabled = false;
-      }
-    });
-
-    if(publishSiteBtn) publishSiteBtn.addEventListener('click', async () => {
-      if(!supabase || !currentSession || !lastSavedSiteId) return;
-      publishSiteBtn.disabled = true;
-      builderSaveStatus.textContent = 'Publishing…';
-      try{
-        const res = await fetch('/.netlify/functions/publish-site', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentSession.access_token}`,
-          },
-          body: JSON.stringify({ id: lastSavedSiteId }),
-        });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.error || 'Publish failed');
-        builderSaveStatus.innerHTML = `Published: <a href="${data.url}" target="_blank" rel="noopener">${data.url}</a>`;
-      } catch(err){
-        builderSaveStatus.textContent = 'Couldn\u2019t publish — try again.';
-        console.error('Publish error:', err);
-        publishSiteBtn.disabled = false;
-      }
-    });
-  } catch(e){
-    console.warn('AI Builder demo setup failed:', e);
-  }
-
-  // ===== FAQ accordion =====
-  try {
-    document.querySelectorAll('.faq-item').forEach(item => {
-      const q = item.querySelector('.faq-q');
-      const a = item.querySelector('.faq-a');
-      q.addEventListener('click', () => {
-        const isOpen = item.classList.contains('open');
-        document.querySelectorAll('.faq-item.open').forEach(other => {
-          if(other !== item){
-            other.classList.remove('open');
-            other.querySelector('.faq-a').style.maxHeight = null;
-          }
-        });
-        item.classList.toggle('open');
-        a.style.maxHeight = isOpen ? null : a.scrollHeight + 'px';
-      });
-    });
-  } catch(e){
-    console.warn('FAQ accordion setup failed:', e);
-  }
-
-  // ===== Animated stat counters =====
+  // ===== Animated stat counters (not click-driven) =====
   try {
     const statNodes = document.querySelectorAll('.stat-num');
     const statIO = new IntersectionObserver((entries) => {
@@ -1425,12 +1585,9 @@
         function tick(now){
           const progress = Math.min((now - start) / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 3);
-          let value;
-          if(decimals){
-            value = (target + parseFloat('0.' + decimalDigit) * progress).toFixed(1);
-          } else {
-            value = Math.floor(eased * target);
-          }
+          const value = decimals
+            ? (target + parseFloat('0.' + decimalDigit) * progress).toFixed(1)
+            : Math.floor(eased * target);
           el.textContent = value + suffix;
           if(progress < 1) requestAnimationFrame(tick);
         }
@@ -1443,178 +1600,9 @@
     console.warn('Stat counter setup failed:', e);
   }
 
-  // ===== Contact form — real send via Resend =====
-  try {
-    const contactForm = document.getElementById('contactForm');
-    const contactError = document.getElementById('contactError');
-    const contactSuccess = document.getElementById('contactSuccess');
-    const contactSubmitBtn = document.getElementById('contactSubmitBtn');
-
-    if(contactForm){
-      contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        contactError.textContent = '';
-        contactSuccess.textContent = '';
-        contactSubmitBtn.disabled = true;
-        contactSubmitBtn.textContent = 'Sending…';
-
-        const payload = {
-          name: document.getElementById('contactName').value.trim(),
-          email: document.getElementById('contactEmail').value.trim(),
-          message: document.getElementById('contactMessage').value.trim(),
-        };
-
-        try{
-          const res = await fetch('/.netlify/functions/send-contact', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json();
-          if(!res.ok) throw new Error(data.error || 'Something went wrong');
-          contactSuccess.textContent = 'Message sent — we\u2019ll be in touch soon.';
-          contactForm.reset();
-        } catch(err){
-          contactError.textContent = err.message || 'Couldn\u2019t send — try again.';
-        } finally{
-          contactSubmitBtn.disabled = false;
-          contactSubmitBtn.textContent = 'Send message';
-        }
-      });
-    }
-  } catch(e){
-    console.warn('Contact form setup failed:', e);
-  }
-  // ===== Legal modals (Privacy / Terms / Refund) =====
-  try {
-    const legalContent = {
-      about: `
-        <h3>About Launchify Sites</h3>
-        <p>Launchify Sites helps entrepreneurs, startups, creators, nonprofits, churches, coaches, restaurants, and local businesses launch beautiful websites in days instead of weeks.</p>
-        <p>Today, we're a done-for-you service: you tell us about your business, our AI-assisted tools generate a real starting point — layout, copy, and imagery — and our team refines it into your finished, published site.</p>
-        <h4>What makes us different</h4>
-        <ul>
-          <li>Real AI generation, not templates with swapped text — every preview is built fresh for your specific business</li>
-          <li>Expert review on every delivered site, not just an automated output</li>
-          <li>Fast turnaround — most sites ship in 2-5 days depending on plan</li>
-        </ul>
-        <p>Questions about working with us? Reach out any time at hello@launchifysites.com.</p>
-      `,
-      help: `
-        <h3>Help Center</h3>
-        <p>Common questions are answered in the FAQ section on this page.</p>
-        <h4>Quick answers</h4>
-        <ul>
-          <li><strong>How fast is delivery?</strong> 2-5 business days depending on your plan</li>
-          <li><strong>Can I edit my site myself?</strong> Add the optional Client Portal to any plan for self-editing, or we handle updates for you by default</li>
-          <li><strong>What if something's wrong with my delivered site?</strong> Contact us and we'll fix it — see our Refund Policy for specifics</li>
-        </ul>
-        <p>Can't find what you need? Email hello@launchifysites.com and we'll get back to you within 2 business days.</p>
-      `,
-      privacy: `
-        <h3>Privacy Policy</h3>
-        <p class="legal-updated">Last updated: July 2026</p>
-        <p>Launchify Sites ("we," "us") provides this policy to explain what information we collect when you use launchifysites.com and our related services, and how we use it.</p>
-        <h4>Information we collect</h4>
-        <ul>
-          <li>Account information: your email address and authentication details when you sign up (via email/password or Google sign-in)</li>
-          <li>Content you generate: business descriptions and site content created through our AI website builder</li>
-          <li>Order and billing information processed through Stripe, PayPal, or Klarna — we do not store your full card details ourselves</li>
-          <li>Contact form submissions, including your name, email, and message</li>
-        </ul>
-        <h4>How we use it</h4>
-        <ul>
-          <li>To create and deliver your website</li>
-          <li>To operate your account, including saved and published sites</li>
-          <li>To respond to support requests</li>
-          <li>To improve our services</li>
-        </ul>
-        <h4>Third parties we work with</h4>
-        <p>We use Supabase for account and data storage, Anthropic and OpenAI for AI-generated content, Resend for email delivery, Netlify for hosting, and Stripe/PayPal/Klarna for payments. Each of these providers processes data under their own privacy terms.</p>
-        <h4>Your rights</h4>
-        <p>You can request access to, correction of, or deletion of your personal data at any time by contacting hello@launchifysites.com.</p>
-        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business handling real customer data, have it reviewed by a qualified attorney familiar with applicable privacy laws (e.g., CCPA, GDPR) for your situation.</div>
-      `,
-      terms: `
-        <h3>Terms of Service</h3>
-        <p class="legal-updated">Last updated: July 2026</p>
-        <p>These terms govern your use of Launchify Sites' website design and AI website builder services. By purchasing a plan or creating an account, you agree to these terms.</p>
-        <h4>Our services</h4>
-        <p>Launchify Sites provides done-for-you website design services, delivered within the timeframe stated for your selected plan (Starter, Professional, Business, or Enterprise). Our AI-assisted preview tool generates draft content and imagery for illustrative purposes; final delivered sites are reviewed and refined by our team.</p>
-        <h4>Payment</h4>
-        <p>Plans are billed as stated at checkout via Stripe, PayPal, or Klarna. Custom/Enterprise pricing is agreed separately in writing.</p>
-        <h4>Client responsibilities</h4>
-        <p>You are responsible for providing accurate business information, timely feedback during the build process, and ensuring you have the rights to any content, logos, or trademarks you ask us to include.</p>
-        <h4>Ownership</h4>
-        <p>Once delivered and paid in full, you own the content and design of your website. Launchify Sites retains no ownership claim over your delivered site.</p>
-        <h4>Limitations</h4>
-        <p>Our AI-assisted tools may occasionally generate content that requires correction; final review is part of our delivery process. We are not liable for indirect or consequential damages arising from use of our services.</p>
-        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Before relying on this for a live business, have it reviewed by a qualified attorney to ensure it fits your actual business terms and local law.</div>
-      `,
-      refund: `
-        <h3>Refund Policy</h3>
-        <p class="legal-updated">Last updated: July 2026</p>
-        <p>We want you to be satisfied with your new website. Here's how refunds work for each stage of the process.</p>
-        <h4>Before we begin production</h4>
-        <p>If you cancel before submitting your project questionnaire, you're eligible for a full refund.</p>
-        <h4>During production</h4>
-        <p>Once we've begun designing your site, refunds are prorated based on work completed. Contact us and we'll assess where your project stands.</p>
-        <h4>After delivery</h4>
-        <p>Because each site is custom-built for your business, we don't offer refunds after final delivery and approval. If something doesn't match what was agreed upon, contact us first — we'll fix it.</p>
-        <h4>How to request a refund</h4>
-        <p>Email hello@launchifysites.com with your order details. We aim to respond within 2 business days.</p>
-        <div class="legal-disclaimer">This is a template policy provided for informational purposes and has not been reviewed by an attorney. Review and adjust it to match your actual refund practices before relying on it for real transactions.</div>
-      `,
-    };
-
-    const legalOverlay = document.getElementById('legalOverlay');
-    const legalBody = document.getElementById('legalBody');
-    const legalCloseBtn = document.getElementById('legalCloseBtn');
-
-    function openLegalModal(key){
-      if(!legalContent[key]) return;
-      legalBody.innerHTML = legalContent[key];
-      legalOverlay.classList.add('open');
-    }
-    function closeLegalModal(){ legalOverlay.classList.remove('open'); }
-
-    document.querySelectorAll('.footer-link-btn[data-modal]').forEach(btn => {
-      btn.addEventListener('click', () => openLegalModal(btn.dataset.modal));
-    });
-    if(legalCloseBtn) legalCloseBtn.addEventListener('click', closeLegalModal);
-    if(legalOverlay) legalOverlay.addEventListener('click', (e) => { if(e.target === legalOverlay) closeLegalModal(); });
-  } catch(e){
-    console.warn('Legal modal setup failed:', e);
-  }
-  // ===== Share this page =====
-  try {
-    const sharePageBtn = document.getElementById('sharePageBtn');
-    const shareBtnLabel = document.getElementById('shareBtnLabel');
-    if(sharePageBtn){
-      sharePageBtn.addEventListener('click', async () => {
-        const shareData = {
-          title: 'Launchify Sites — Launch Your Website Faster Than Ever',
-          text: 'Professional websites built with AI and refined by experts.',
-          url: window.location.href,
-        };
-        try{
-          if(navigator.share){
-            await navigator.share(shareData);
-          } else if(navigator.clipboard){
-            await navigator.clipboard.writeText(shareData.url);
-            const original = shareBtnLabel.textContent;
-            shareBtnLabel.textContent = 'Link copied!';
-            setTimeout(() => { shareBtnLabel.textContent = original; }, 2000);
-          }
-        } catch(err){
-          // AbortError fires if the user just closes the native share sheet — not a real error.
-          if(err.name !== 'AbortError') console.warn('Share failed:', err);
-        }
-      });
-    }
-  } catch(e){
-    console.warn('Share button setup failed:', e);
-  }
+} catch(topLevelError){
+  console.error('Unexpected top-level script error:', topLevelError);
+}
 </script>
 </body>
 </html>
